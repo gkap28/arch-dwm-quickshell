@@ -23,24 +23,10 @@ ShellRoot {
     property var selectedPanelWindow: null
     readonly property var defaultPanelWindow: panelVariants.instances.length > 0
         ? panelVariants.instances[0] : null
-    readonly property var activePanelWindow: selectedPanelWindow && selectedPanelWindow.screen
-        ? selectedPanelWindow : defaultPanelWindow
-    readonly property var activePanelScreen: activePanelWindow && activePanelWindow.screen
+    readonly property var activePanelWindow: selectedPanelWindow || defaultPanelWindow
+    readonly property var activePanelScreen: activePanelWindow
         ? activePanelWindow.screen
         : (Quickshell.screens.length > 0 ? Quickshell.screens[0] : null)
-
-    function selectPanelPopup(panel, popupId) {
-        if (!panel || !panel.screen) {
-            return;
-        }
-
-        if (popupId !== "bluetooth") bluetoothModel.close();
-        if (popupId !== "controlcenter") controlCenterModel.close();
-        if (popupId !== "controls") controlsModel.close();
-        if (popupId !== "network") networkModel.close();
-        if (popupId !== "power") powerMenuModel.close();
-        root.selectedPanelWindow = panel;
-    }
 
     DwmState {
         id: dwmState
@@ -314,22 +300,6 @@ ShellRoot {
             return settingsModel.selectedSectionId;
         }
 
-        function displayCount(): int {
-            return settingsModel.displayOutputs.length;
-        }
-
-        function displayStatus(): string {
-            return settingsModel.displayState;
-        }
-
-        function inputCount(): int {
-            return settingsModel.inputDevices.length;
-        }
-
-        function inputStatus(): string {
-            return settingsModel.inputState;
-        }
-
         function open(): void {
             settingsModel.open();
         }
@@ -397,12 +367,12 @@ ShellRoot {
         panelWindow: root.activePanelWindow
     }
 
-    Variants {
+        Variants {
         id: panelVariants
 
         model: Quickshell.screens
 
-        DwmPanel {
+     DwmPanel {
             required property var modelData
 
             screen: modelData
@@ -413,8 +383,8 @@ ShellRoot {
             bluetoothModel: bluetoothModel
             controlCenterModel: controlCenterModel
             powerMenuModel: powerMenuModel
-            primaryPanel: modelData === Quickshell.screens[0]
-            onPopupRequested: (panel, popupId) => root.selectPanelPopup(panel, popupId)
+            primaryPanel: modelData.name === "DisplayPort-2"
+            onPopupRequested: panel => root.selectedPanelWindow = panel
         }
     }
 

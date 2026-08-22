@@ -6,7 +6,7 @@ Scope {
 
     property int currentWorkspace: 0
     property var monitorWorkspaceRows: []
-    property var workspaceNames: ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    property var workspaceNames: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
     property var occupiedWorkspaces: []
     property var fullscreenMonitorIndexes: []
     property var runningApps: []
@@ -80,58 +80,37 @@ Scope {
     }
 
     function screenIndex(screen) {
-        const pixelRatio = screen && screen.devicePixelRatio > 0
-            ? screen.devicePixelRatio : 1;
-        const pixelX = screen ? Math.round(screen.x) : 0;
-        const pixelY = screen ? Math.round(screen.y) : 0;
-        const pixelWidth = screen ? Math.round(screen.width * pixelRatio) : 0;
-        const pixelHeight = screen ? Math.round(screen.height * pixelRatio) : 0;
-
-        for (let index = 0; index < root.monitorWorkspaceRows.length; index++) {
-            const row = root.monitorWorkspaceRows[index];
-            const logicalMatch = screen && row.x === screen.x && row.y === screen.y
-                && row.width === screen.width && row.height === screen.height;
-            const pixelMatch = screen && row.x === pixelX && row.y === pixelY
-                && row.width === pixelWidth && row.height === pixelHeight;
-
-            if (logicalMatch || pixelMatch) {
-                return index;
-            }
-        }
-
-        for (let index = 0; index < Quickshell.screens.length; index++) {
-            if (Quickshell.screens[index] === screen
-                    || (screen && Quickshell.screens[index].name === screen.name)) {
-                return index;
-            }
-        }
-
+    if (!screen) {
         return 0;
     }
 
+    // HDMI-A-0 ist immer Monitor 0 / Primary.
+    if (screen.name === "HDMI-A-0") {
+        return 0;
+    }
+
+    // DisplayPort-2 ist immer Monitor 1 / Secondary.
+    if (screen.name === "DisplayPort-2") {
+        return 1;
+    }
+
+    return 0;
+}
+
     function workspaceIndexes(screen) {
         const indexes = [];
-        const workspaceCount = root.workspaceNames.length;
+        const logicalIndex = root.screenIndex(screen);
 
-        if (workspaceCount === 0) {
-            return indexes;
-        }
-
-        const screenCount = Math.max(1, root.monitorWorkspaceRows.length > 0
-            ? root.monitorWorkspaceRows.length : Quickshell.screens.length);
-        const logicalIndex = Math.min(root.screenIndex(screen), screenCount - 1);
-        const workspacesPerScreen = Math.max(1, Math.floor(workspaceCount / screenCount));
-        let start = logicalIndex * workspacesPerScreen;
-        let end = logicalIndex === screenCount - 1
-            ? workspaceCount : start + workspacesPerScreen;
-
-        if (start >= workspaceCount) {
-            start = workspaceCount - 1;
-        }
-        end = Math.min(end, workspaceCount);
-
-        for (let index = start; index < end; index++) {
-            indexes.push(index);
+        if (logicalIndex === 0) {
+            // HDMI / Primary: Workspaces 1-5
+            for (let index = 0; index < 5 && index < root.workspaceNames.length; index++) {
+                indexes.push(index);
+            }
+        } else if (logicalIndex === 1) {
+            // DisplayPort-2 / Secondary: Workspaces 6-0
+            for (let index = 5; index < 10 && index < root.workspaceNames.length; index++) {
+                indexes.push(index);
+            }
         }
 
         return indexes;

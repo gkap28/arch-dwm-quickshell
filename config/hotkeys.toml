@@ -77,7 +77,8 @@ keys = [
   { mod="SUPER CTRL",       key="p",       desc="Screenshot area → clip",  func="spawn",       cmd="dwm-screenshot clip" },
 
   # ── Files & utilities ─────────────────────────────────────────────────────────
-  { mod="SUPER",            key="e",       desc="File manager",            func="spawn",       cmd="xdg-open ." },
+  { mod="SUPER SHIFT", key="Return", desc="Thunar",      func="spawn", exec=["thunar"] },
+  { mod="SUPER SHIFT", key="m",      desc="Thunderbird", func="spawn", exec=["thunderbird"] },
   { mod="SUPER",            key="slash",   desc="Keybinds cheatsheet",     func="spawn",       cmd="quickshell ipc --path \"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/shell.qml\" call controlcenter openKeybinds" },
   { mod="SUPER",            key="F1",      desc="Control center",          func="spawn",       cmd="quickshell ipc --path \"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/shell.qml\" call controlcenter open" },
   { mod="SUPER ALT",        key="F1",      desc="Control center",          func="spawn",       cmd="quickshell ipc --path \"${XDG_CONFIG_HOME:-$HOME/.config}/quickshell/shell.qml\" call controlcenter open" },
@@ -115,7 +116,7 @@ keys = [
   { mod="SUPER",            key="t",       desc="Tile layout",             func="setlayout",   layout_idx=0 },
   { mod="SUPER",            key="f",       desc="Float layout",            func="setlayout",   layout_idx=1 },
   { mod="SUPER",            key="m",       desc="Fullscreen",              func="fullscreen" },
-  { mod="SUPER SHIFT",      key="m",       desc="Toggle floating window",  func="togglefloating" },
+  # { mod="SUPER SHIFT",      key="m",       desc="Toggle floating window",  func="togglefloating" },
   { mod="SUPER",            key="space",   desc="Toggle float/tile",       func="togglefloating" },
   { mod="SUPER SHIFT",      key="y",       desc="Fake fullscreen",         func="togglefakefullscreen" },
   { mod="SUPER SHIFT",      key="b",       desc="Toggle bar",              func="togglebar" },

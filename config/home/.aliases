@@ -1,0 +1,65 @@
+########  Meine Archlinux & Voidlinux Aliases     ##########
+#########  created by Georg Kalaitzis             ##########
+#########  auf archlinux/void mit hyprland        ##########
+
+# ==================================================================
+# UNIVERSELLE ALIASES (Auf beiden Systemen aktiv)
+# ==================================================================
+alias c='clear'
+alias v='nvim'
+alias vs='sudo nvim'
+alias s='subl'
+alias ss='sudo -E subl'
+alias sh='subl ~/.config/hypr/hyprland.lua'
+alias vh='nvim ~/.config/hypr/hyprland.lua'
+alias sz='source /home/georg/.zshrc'
+alias grub='sudo grub-mkconfig -o /boot/grub/grub.cfg'
+alias ls='eza -bghHliSa'
+
+# ==================================================================
+# AUTOMATISCHE DISTRO-WEICHE
+# ==================================================================
+
+if [ -f /etc/arch-release ]; then
+    ########   YAY ALIASES   ########
+    alias yi='yay -S'
+    alias ys='yay -Rs'
+    alias yr='yay -R'
+    alias yrs='yay -Rns'
+    alias ya='yay -Sua'
+    alias yu='yay'
+
+    ########   PACMAN ALIASES   ########
+    alias pu='sudo pacman -Su'
+    alias psy='sudo pacman -Syy'
+    alias py='sudo pacman -Sy'
+    alias pi='sudo pacman -S'
+    alias pss='sudo pacman -Ss'
+    alias psi='sudo pacman -Si'
+    alias pr='sudo pacman -R'
+    alias prs='sudo pacman -Rs'
+    alias prsu='sudo pacman -Rsu'
+    alias pq='sudo pacman -Q'
+    alias pqi='sudo pacman -Qi'
+    alias psc='sudo pacman -Sc'
+    alias pcc='sudo pacman -Scc'
+    alias ls='eza -bghHliSa'
+
+elif [ -f /etc/void-version ] || grep -q "Void" /etc/os-release 2>/dev/null; then
+    ######## VOIDLINUX ALIASES   ########
+    alias xs='sudo xbps-install -S'
+    alias xu='sudo xbps-install -u'
+    alias xvu='sudo xbps-install -Svu'
+    alias x='sudo xbps-install'
+
+    ########   VOIDLINUX SUCHEN & INFORMATIONEN   ########
+    alias xrs='sudo xbps-query -Rs'
+    alias xl='sudo xbps-query -l'
+    alias xqs='sudo xbps-query -S'
+
+    ########   VOIDLINUX ENTFERNEN & BEREINIGEN   ########
+    alias xr='sudo xbps-remove'
+    alias xro='sudo xbps-remove -O'
+    alias xo='sudo xbps-remove -o'
+    alias ls='exa -bghHliSa'
+fi

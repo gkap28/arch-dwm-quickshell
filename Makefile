@@ -197,6 +197,15 @@ install-user:
 	else \
 		echo "  Preserving existing ${USER_HOME}/.xinitrc"; \
 	fi
+	@echo "==> Seeding shell configuration without overwriting user files..."
+	for file in .aliases .zshrc .zprofile; do \
+		if [ ! -e "${USER_HOME}/$$file" ]; then \
+			install -Dm644 "config/home/$$file" "${USER_HOME}/$$file"; \
+			echo "  Installed $$file"; \
+		else \
+			echo "  Preserving existing ${USER_HOME}/$$file"; \
+		fi; \
+	done
 	@echo "==> Syncing local repo to data dir..."
 	mkdir -p ${DATA_DIR}
 	if [ "$$(realpath .)" != "$$(realpath ${DATA_DIR})" ]; then \

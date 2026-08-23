@@ -189,3 +189,16 @@ scripts/run-tests
 
 Project requirements and active work are tracked in [SPEC.md](SPEC.md),
 [ROADMAP.md](ROADMAP.md), and [TASKS.md](TASKS.md).
+
+## Credits
+
+This project is based on the work of Chris Titus Tech and his
+[dwm-titus](https://github.com/ChrisTitusTech/dwm-titus) project.
+
+The original project provided the foundation for this desktop.
+This repository is our Arch Linux adaptation and development,
+including Quickshell integration, themes, dual-monitor configuration,
+workspace-to-monitor mapping, keybindings, wallpaper handling,
+and additional desktop tooling.
+
+Many thanks to Chris Titus Tech for the original work and inspiration.

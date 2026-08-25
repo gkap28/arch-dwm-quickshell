@@ -185,7 +185,7 @@ PanelWindow {
 
                     // Update-Widget - vor dem Wetter-Widget
                     PanelPill {
-                        visible: root.updateModel.updateCount > 0
+                        visible: true
                         Layout.preferredWidth: updateRow.implicitWidth + Theme.compactWidgetHorizontalPadding * 2
                         Layout.preferredHeight: Theme.compactWidgetSize
                         hovered: updateMouse.containsMouse
@@ -197,13 +197,13 @@ PanelWindow {
 
                             IconText {
                                 text: "󰏗"
-                                color: Theme.warning
+                                color: root.updateModel.updateCount > 0 ? Theme.warning : Theme.success
                                 font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
                             }
 
                             UiText {
                                 text: root.updateModel.updateCount.toString()
-                                color: Theme.warning
+                                color: root.updateModel.updateCount > 0 ? Theme.warning : Theme.success
                                 font.pixelSize: Theme.panelFontSize
                                 font.bold: true
                             }

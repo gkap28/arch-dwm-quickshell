@@ -36,6 +36,8 @@ PanelWindow {
     required property var bluetoothModel
     required property var controlCenterModel
     required property var powerMenuModel
+    required property var weatherModel
+    required property var updateModel
     required property bool primaryPanel
 
     implicitHeight: Theme.panelHeight
@@ -180,6 +182,81 @@ PanelWindow {
                     }
 
                     RunningAppsArea { state: root.state }
+
+                    // Update-Widget - vor dem Wetter-Widget
+                    PanelPill {
+                        visible: root.updateModel.updateCount > 0
+                        Layout.preferredWidth: updateRow.implicitWidth + Theme.compactWidgetHorizontalPadding * 2
+                        Layout.preferredHeight: Theme.compactWidgetSize
+                        hovered: updateMouse.containsMouse
+
+                        RowLayout {
+                            id: updateRow
+                            anchors.centerIn: parent
+                            spacing: Theme.compactSpacing
+
+                            IconText {
+                                text: "󰏗"
+                                color: Theme.warning
+                                font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
+                            }
+
+                            UiText {
+                                text: root.updateModel.updateCount.toString()
+                                color: Theme.warning
+                                font.pixelSize: Theme.panelFontSize
+                                font.bold: true
+                            }
+                        }
+
+                        MouseArea {
+                            id: updateMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.updateModel.refresh()
+                            }
+                        }
+                    }
+
+                    // Wetter-Widget - direkt vor Bluetooth
+                    PanelPill {
+                        Layout.preferredWidth: weatherRow.implicitWidth + Theme.compactWidgetHorizontalPadding * 2
+                        Layout.preferredHeight: Theme.compactWidgetSize
+                        active: root.weatherModel.detailVisible
+                        hovered: weatherMouse.containsMouse
+
+                        RowLayout {
+                            id: weatherRow
+                            anchors.centerIn: parent
+                            spacing: Theme.compactSpacing
+
+                            IconText {
+                                text: root.weatherModel.weatherIcon
+                                color: Theme.textStrong
+                                font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
+                            }
+
+                            UiText {
+                                text: root.weatherModel.temperature + "°C"
+                                color: Theme.textStrong
+                                font.pixelSize: Theme.panelFontSize
+                                visible: root.weatherModel.temperature !== "--"
+                            }
+                        }
+
+                        MouseArea {
+                            id: weatherMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.popupRequested(root, "weather");
+                                root.weatherModel.toggle();
+                            }
+                        }
+                    }
 
                     Loader {
                         active: root.primaryPanel
@@ -369,6 +446,24 @@ PanelWindow {
         anchorWindow: root
         anchorItem: batteryPill
         label: root.state.batteryPercent.toString() + "% - " + root.state.batteryStatus
+        anchorY: Theme.panelHeight
+        rightAligned: true
+    }
+
+    PanelTooltip {
+        visible: updateMouse.containsMouse
+        anchorWindow: root
+        anchorItem: updateMouse
+        label: root.updateModel.updateCount + " Updates verfügbar"
+        anchorY: Theme.panelHeight
+        rightAligned: true
+    }
+
+    PanelTooltip {
+        visible: weatherMouse.containsMouse
+        anchorWindow: root
+        anchorItem: weatherMouse
+        label: root.weatherModel.temperature + "°C - " + root.weatherModel.description
         anchorY: Theme.panelHeight
         rightAligned: true
     }

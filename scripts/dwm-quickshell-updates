@@ -1,0 +1,23 @@
+#!/bin/bash
+# Update-Checker für dwm-titus
+# Verwendung: dwm-quickshell-updates [status|count]
+
+action="${1:-status}"
+
+case "$action" in
+    status)
+        count=$($HOME/.config/quickshell/scripts/check-updates.sh 2>/dev/null)
+        if [ "$count" -gt 0 ]; then
+            echo "UPD $count"
+        else
+            echo "UPD 0"
+        fi
+        ;;
+    count)
+        $HOME/.config/quickshell/scripts/check-updates.sh 2>/dev/null
+        ;;
+    *)
+        echo "Verwendung: $0 [status|count]"
+        exit 1
+        ;;
+esac

@@ -14,6 +14,8 @@ import qs.panel
 import qs.power
 import qs.settings
 import qs.state
+import qs.weather
+import qs.updates
 
 pragma ComponentBehavior: Bound
 
@@ -70,6 +72,14 @@ ShellRoot {
         id: settingsModel
     }
 
+    WeatherModel {
+        id: weatherModel
+    }
+
+    UpdateModel {
+        id: updateModel
+    }
+
     LazyLoader {
         active: true
 
@@ -77,6 +87,8 @@ ShellRoot {
             Component.onCompleted: {
                 networkModel.refresh();
                 controlsModel.refresh();
+                weatherModel.refresh();
+                updateModel.refresh();
             }
         }
     }
@@ -322,6 +334,58 @@ ShellRoot {
     }
 
     IpcHandler {
+        target: "weather"
+
+        function close(): void {
+            weatherModel.close();
+        }
+
+        function open(): void {
+            weatherModel.open();
+        }
+
+        function refresh(): void {
+            weatherModel.refresh();
+                updateModel.refresh();
+        }
+        function status(): string {
+            return weatherModel.temperature + "°C " + weatherModel.condition;
+        }
+
+        function toggle(): void {
+            weatherModel.toggle();
+        }
+    }
+
+    IpcHandler {
+        target: "updates"
+
+        function close(): void {
+            updateModel.close();
+        }
+
+        function count(): int {
+            return updateModel.updateCount;
+        }
+
+        function open(): void {
+            updateModel.open();
+        }
+
+        function refresh(): void {
+            updateModel.refresh();
+        }
+
+        function status(): string {
+            return updateModel.updateCount + " Updates verfügbar";
+        }
+
+        function toggle(): void {
+            updateModel.toggle();
+        }
+    }
+
+    IpcHandler {
         target: "tray"
 
         function count(): int {
@@ -367,12 +431,12 @@ ShellRoot {
         panelWindow: root.activePanelWindow
     }
 
-        Variants {
+    Variants {
         id: panelVariants
 
         model: Quickshell.screens
 
-     DwmPanel {
+        DwmPanel {
             required property var modelData
 
             screen: modelData
@@ -383,6 +447,8 @@ ShellRoot {
             bluetoothModel: bluetoothModel
             controlCenterModel: controlCenterModel
             powerMenuModel: powerMenuModel
+            weatherModel: weatherModel
+            updateModel: updateModel
             primaryPanel: modelData.name === "DisplayPort-2"
             onPopupRequested: panel => root.selectedPanelWindow = panel
         }
@@ -432,5 +498,10 @@ ShellRoot {
 
     SettingsWindow {
         settingsModel: settingsModel
+    }
+
+    WeatherWindow {
+        weatherModel: weatherModel
+        panelWindow: root.activePanelWindow
     }
 }

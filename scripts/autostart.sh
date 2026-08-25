@@ -243,3 +243,4 @@ fi
 # entry. Reapply the persisted policy after XDG startup so disabled locking
 # cannot leave an independently started locker attached to DPMS events.
 apply_power_settings
+dunst &

@@ -6,7 +6,7 @@ Scope {
 
     property int currentWorkspace: 0
     property var monitorWorkspaceRows: []
-    property var workspaceNames: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"]
+    property var workspaceNames: ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
     property var occupiedWorkspaces: []
     property var fullscreenMonitorIndexes: []
     property var runningApps: []
@@ -80,39 +80,29 @@ Scope {
     }
 
     function screenIndex(screen) {
-    if (!screen) {
-        return 0;
-    }
-
-    // HDMI-A-0 ist immer Monitor 0 / Primary.
-    if (screen.name === "HDMI-A-0") {
-        return 0;
-    }
-
-    // DisplayPort-2 ist immer Monitor 1 / Secondary.
-    if (screen.name === "DisplayPort-2") {
-        return 1;
-    }
-
-    return 0;
-}
-
-    function workspaceIndexes(screen) {
-        const indexes = [];
-        const logicalIndex = root.screenIndex(screen);
-
-        if (logicalIndex === 0) {
-            // HDMI / Primary: Workspaces 1-5
-            for (let index = 0; index < 5 && index < root.workspaceNames.length; index++) {
-                indexes.push(index);
-            }
-        } else if (logicalIndex === 1) {
-            // DisplayPort-2 / Secondary: Workspaces 6-0
-            for (let index = 5; index < 10 && index < root.workspaceNames.length; index++) {
-                indexes.push(index);
-            }
+        if (!screen) {
+            return 0;
         }
 
+        // HDMI-A-0 ist immer Monitor 0 / Primary.
+        if (screen.name === "HDMI-A-0") {
+            return 0;
+        }
+
+        // DisplayPort-2 ist immer Monitor 1 / Secondary.
+        if (screen.name === "DisplayPort-2") {
+            return 1;
+        }
+
+        return 0;
+    }
+
+    function workspaceIndexes(screen) {
+        // Jeder Monitor hat alle 9 Workspaces (1-9)
+        const indexes = [];
+        for (let index = 0; index < 9 && index < root.workspaceNames.length; index++) {
+            indexes.push(index);
+        }
         return indexes;
     }
 

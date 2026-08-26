@@ -5466,53 +5466,27 @@ getmonlogicalindex(Monitor *target)
 unsigned int
 getmontagmask(int monnum)
 {
-	Monitor *m;
-	int logicalindex;
-
 	/*
-	 * Feste Zuordnung:
+	 * Jeder Monitor bekommt alle 9 Tags (1-9).
+	 * Tag 0 (Bit 9) wird nicht verwendet.
 	 *
-	 * HDMI / linker Monitor      = Tags 1 2 3 4 5
-	 * DisplayPort / rechter Monitor = Tags 6 7 8 9 0
-	 *
-	 * Die Zuordnung erfolgt über die logische Position
-	 * des Monitors, nicht über m->num.
+	 * Durch den pertag-Patch sind die Tags pro Monitor
+	 * unabhängig - jeder Monitor hat seine eigenen 9 Workspaces.
 	 */
 
-	updatemonitorcount();
-
 	if (monitorcount <= 1)
-		return TAGMASK;
+		return TAGMASK & ~(1 << 9);
 
-	for (m = mons; m; m = m->next) {
-		if (m->num == monnum)
-			break;
-	}
-
-	if (!m)
-		return TAGMASK;
-
-	logicalindex = getmonlogicalindex(m);
-
-	if (logicalindex == 0) {
-		/* HDMI / linker Monitor: 1 2 3 4 5 */
-		return (1 << 0) |
-		       (1 << 1) |
-		       (1 << 2) |
-		       (1 << 3) |
-		       (1 << 4);
-	}
-
-	if (logicalindex == 1) {
-		/* DisplayPort / rechter Monitor: 6 7 8 9 0 */
-		return (1 << 5) |
-		       (1 << 6) |
-		       (1 << 7) |
-		       (1 << 8) |
-		       (1 << 9);
-	}
-
-	return TAGMASK;
+	/* Alle Tags 1-9 für jeden Monitor */
+	return (1 << 0) |
+	       (1 << 1) |
+	       (1 << 2) |
+	       (1 << 3) |
+	       (1 << 4) |
+	       (1 << 5) |
+	       (1 << 6) |
+	       (1 << 7) |
+	       (1 << 8);
 }
 
 /* Keep each monitor on tags owned by its current logical monitor index. */

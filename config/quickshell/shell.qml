@@ -16,6 +16,7 @@ import qs.settings
 import qs.state
 import qs.weather
 import qs.updates
+import qs.layout
 
 pragma ComponentBehavior: Bound
 
@@ -80,6 +81,10 @@ ShellRoot {
         id: updateModel
     }
 
+    LayoutModel {
+        id: layoutModel
+    }
+
     LazyLoader {
         active: true
 
@@ -89,6 +94,7 @@ ShellRoot {
                 controlsModel.refresh();
                 weatherModel.refresh();
                 updateModel.refresh();
+                layoutModel.refresh();
             }
         }
     }
@@ -347,6 +353,7 @@ ShellRoot {
         function refresh(): void {
             weatherModel.refresh();
                 updateModel.refresh();
+                layoutModel.refresh();
         }
         function status(): string {
             return weatherModel.temperature + "°C " + weatherModel.condition;
@@ -374,6 +381,7 @@ ShellRoot {
 
         function refresh(): void {
             updateModel.refresh();
+                layoutModel.refresh();
         }
 
         function status(): string {
@@ -449,6 +457,7 @@ ShellRoot {
             powerMenuModel: powerMenuModel
             weatherModel: weatherModel
             updateModel: updateModel
+            layoutModel: layoutModel
             primaryPanel: modelData.name === "DisplayPort-2"
             onPopupRequested: panel => root.selectedPanelWindow = panel
         }

@@ -38,6 +38,7 @@ PanelWindow {
     required property var powerMenuModel
     required property var weatherModel
     required property var updateModel
+    required property var layoutModel
     required property bool primaryPanel
 
     implicitHeight: Theme.panelHeight
@@ -189,6 +190,42 @@ PanelWindow {
                     }
 
                     RunningAppsArea { state: root.state }
+
+                    // Layout-Widget - vor dem Update-Widget
+                    PanelPill {
+                        Layout.preferredWidth: layoutRow.implicitWidth + Theme.compactWidgetHorizontalPadding * 2
+                        Layout.preferredHeight: Theme.compactWidgetSize
+                        hovered: layoutMouse.containsMouse
+
+                        RowLayout {
+                            id: layoutRow
+                            anchors.centerIn: parent
+                            spacing: Theme.compactSpacing
+
+                            IconText {
+                                text: "󰌌"
+                                color: Theme.accent
+                                font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
+                            }
+
+                            UiText {
+                                text: root.layoutModel.currentLayoutName
+                                color: Theme.accent
+                                font.pixelSize: Theme.panelFontSize
+                                font.bold: true
+                            }
+                        }
+
+                        MouseArea {
+                            id: layoutMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                root.layoutModel.toggle()
+                            }
+                        }
+                    }
 
                     // Update-Widget - vor dem Wetter-Widget
                     PanelPill {
@@ -453,6 +490,15 @@ PanelWindow {
         anchorWindow: root
         anchorItem: batteryPill
         label: root.state.batteryPercent.toString() + "% - " + root.state.batteryStatus
+        anchorY: Theme.panelHeight
+        rightAligned: true
+    }
+
+    PanelTooltip {
+        visible: layoutMouse.containsMouse
+        anchorWindow: root
+        anchorItem: layoutMouse
+        label: "Layout: " + root.layoutModel.currentLayoutName + " (Klicken zum Wechseln)"
         anchorY: Theme.panelHeight
         rightAligned: true
     }

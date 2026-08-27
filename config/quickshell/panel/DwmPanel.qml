@@ -139,19 +139,27 @@ PanelWindow {
                 }
             }
 
-            PanelPill {
+           PanelPill {
                 Layout.preferredWidth: clockLabel.implicitWidth + Theme.pillHorizontalPadding * 2
                 Layout.preferredHeight: Theme.pillHeight
 
-                UiText {
-                    id: clockLabel
+            UiText {
+              id: clockLabel
+              anchors.centerIn: parent
+              text: Qt.formatDateTime(new Date(), "ddd dd MMM - HH:mm:ss")
+              color: Theme.textStrong
+              font.bold: true
+        }
 
-                    anchors.centerIn: parent
-                    text: Qt.formatDateTime(root.clock.date, "ddd dd MMM - HH:mm")
-                    color: Theme.textStrong
-                    font.bold: true
+            Timer {
+                interval: 1000
+                running: true
+                repeat: true
+                onTriggered: {
+                clockLabel.text = Qt.formatDateTime(new Date(), "ddd dd MMM - HH:mm:ss")
                 }
             }
+        }
 
             Item {
                 Layout.fillWidth: true

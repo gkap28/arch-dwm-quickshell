@@ -1,13 +1,23 @@
 #!/bin/bash
-# Prüft auf Pacman-Updates
+# Prüft auf Pacman- und AUR-Updates
+# Synchronisiert zuerst die Datenbanken, dann werden Updates gezählt
 
-# Prüfe ob checkupdates verfügbar ist
-if ! command -v checkupdates &> /dev/null; then
-    echo "0"
-    exit 0
+# Pacman-Updates (mit fakeroot für checkupdates)
+pacman_updates=0
+if command -v checkupdates &> /dev/null; then
+    # checkupdates synchronisiert die DB und zählt Updates
+    pacman_updates=$(checkupdates 2>/dev/null | wc -l)
 fi
 
-# Hole Pacman-Updates
-updates=$(checkupdates 2>/dev/null | wc -l)
+# AUR-Updates (paru oder yay)
+aur_updates=0
+if command -v paru &> /dev/null; then
+    aur_updates=$(paru -Qua 2>/dev/null | wc -l)
+elif command -v yay &> /dev/null; then
+    aur_updates=$(yay -Qua 2>/dev/null | wc -l)
+fi
 
-echo "$updates"
+# Gesamtanzahl
+total_updates=$((pacman_updates + aur_updates))
+
+echo "$total_updates"

@@ -204,15 +204,17 @@ PanelWindow {
 
                             IconText {
                                 text: "󰌌"
-                                color: Theme.accent
+                                //color: Theme.accent
+                                color: Theme.textStrong
                                 font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
                             }
 
                             UiText {
                                 text: root.layoutModel.currentLayoutName
-                                color: Theme.accent
+                                //color: Theme.accent
+                                color: Theme.textStrong
                                 font.pixelSize: Theme.panelFontSize
-                                font.bold: true
+                                font.bold: false
                             }
                         }
 
@@ -241,15 +243,17 @@ PanelWindow {
 
                             IconText {
                                 text: "󰏗"
-                                color: root.updateModel.updateCount > 0 ? Theme.warning : Theme.success
+                                //color: root.updateModel.updateCount > 0 ? Theme.warning : Theme.success
+                                color: Theme.textStrong
                                 font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
                             }
 
                             UiText {
                                 text: root.updateModel.updateCount.toString()
-                                color: root.updateModel.updateCount > 0 ? Theme.warning : Theme.success
+                                // color: root.updateModel.updateCount > 0 ? Theme.warning : Theme.success
+                                color: Theme.textStrong
                                 font.pixelSize: Theme.panelFontSize
-                                font.bold: true
+                                font.bold: false
                             }
                         }
 

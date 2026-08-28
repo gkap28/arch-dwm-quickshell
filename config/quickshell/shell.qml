@@ -513,4 +513,8 @@ ShellRoot {
         weatherModel: weatherModel
         panelWindow: root.activePanelWindow
     }
+    UpdateWindow {
+        updateModel: updateModel
+        panelWindow: root.activePanelWindow
+    }
 }

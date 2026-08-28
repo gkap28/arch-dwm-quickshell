@@ -20,11 +20,24 @@ Rectangle {
     Text {
         anchors.centerIn: parent
         text: root.label
-        color: root.selected ? Theme.accent : Theme.textMuted
+        color: root.selected ? Theme.accent : (root.occupied ? Theme.text : Theme.textMuted)
         font.family: Theme.fontFamily
         font.pixelSize: Theme.panelFontSize
         font.bold: root.selected
         verticalAlignment: Text.AlignVCenter
+    }
+
+    // Belegt-Indikator (nur für nicht-ausgewählte Workspaces)
+    Rectangle {
+        visible: root.occupied && !root.selected
+        width: 6
+        height: 6
+        radius: 1
+        color: Theme.accent
+        anchors.right: parent.right
+        anchors.rightMargin: 0
+        anchors.top: parent.top
+        anchors.topMargin: 0
     }
 
     MouseArea {

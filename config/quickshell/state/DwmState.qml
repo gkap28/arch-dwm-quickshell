@@ -8,6 +8,7 @@ Scope {
     property var monitorWorkspaceRows: []
     property var workspaceNames: ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
     property var occupiedWorkspaces: []
+    property var monitorOccupied: []
     property var fullscreenMonitorIndexes: []
     property var runningApps: []
     property string activeWindowTitle: "Desktop"
@@ -51,6 +52,10 @@ Scope {
                 root.monitorWorkspaceRows = rows;
             } else if (key === "names") {
                 root.workspaceNames = value.length > 0 ? value.split("|") : [];
+            } else if (key === "monitor_occupied") {
+                root.monitorOccupied = value.length > 0 ? value.split(",").map(function(val) {
+                    return parseInt(val, 10) || 0;
+                }) : [];
             } else if (key === "occupied") {
                 root.occupiedWorkspaces = value.length > 0 ? value.split("|").map(function(workspace) {
                     return parseInt(workspace, 10);
@@ -77,6 +82,15 @@ Scope {
 
     function workspaceOccupied(index) {
         return root.occupiedWorkspaces.indexOf(index) !== -1;
+    }
+
+    function workspaceOccupiedForScreen(screen, index) {
+        const logicalIndex = root.screenIndex(screen);
+        if (logicalIndex < 0 || logicalIndex >= root.monitorOccupied.length) {
+            return false;
+        }
+        const mask = root.monitorOccupied[logicalIndex];
+        return (mask & (1 << index)) !== 0;
     }
 
     function screenIndex(screen) {

@@ -84,7 +84,7 @@ enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
        NetWMWindowTypeMenu, NetWMWindowTypePopupMenu, NetWMWindowTypeDropdownMenu,
        NetWMWindowTypeCombo, NetWMWindowTypeDnd,
        NetClientList, NetDesktopNames, NetDesktopViewport, NetNumberOfDesktops, NetCurrentDesktop,
-       NetWMDesktop, NetDwmMonitorDesktops, NetLast }; /* EWMH atoms */
+       NetWMDesktop, NetDwmMonitorDesktops, NetDwmMonitorOccupied, NetDwmMonitorClients, NetLast }; /* EWMH atoms */
 enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
 enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
        ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
@@ -3146,7 +3146,7 @@ setclientdesktop(Client *c)
     if (i < TAGSLENGTH) {
         data[0] = i;
     } else {
-        data[0] = 0xFFFFFFFF;
+        data[0] = 0;
     }
     
 	ewmh_replace_window_cardinal(c->win, netatom[NetWMDesktop], data, 1);
@@ -4077,6 +4077,8 @@ setup(void)
 	netatom[NetDesktopNames] = XInternAtom(dpy, "_NET_DESKTOP_NAMES", False);
 	netatom[NetWMDesktop] = XInternAtom(dpy, "_NET_WM_DESKTOP", False);
 	netatom[NetDwmMonitorDesktops] = XInternAtom(dpy, "_DWM_MONITOR_DESKTOPS", False);
+	netatom[NetDwmMonitorOccupied] = XInternAtom(dpy, "_DWM_MONITOR_OCCUPIED", False);
+	netatom[NetDwmMonitorClients] = XInternAtom(dpy, "_DWM_MONITOR_CLIENTS", False);
 	dwmfullscreenmonitorsatom = XInternAtom(dpy, "_DWM_FULLSCREEN_MONITORS", False);
 	dwmtagupdateatom = XInternAtom(dpy, "DWM_TAG_UPDATE", False);
 	/* init cursors */
@@ -4893,6 +4895,26 @@ updatecurrentdesktop(void)
 	XChangeProperty(dpy, root, netatom[NetDwmMonitorDesktops], XA_INTEGER, 32,
 		PropModeReplace, (unsigned char *)monitor_desktops, count * 5);
 	free(monitor_desktops);
+
+	/* Belegte Desktops pro Monitor berechnen */
+	long *monitor_occupied = ecalloc(count, sizeof(long));
+	Client *c;
+	for (m = mons; m; m = m->next) {
+		logicalindex = getmonlogicalindex(m);
+		if (logicalindex < 0 || logicalindex >= count)
+			continue;
+
+		unsigned int occupied = 0;
+		for (c = m->clients; c; c = c->next) {
+			if (c->mon == m && (c->tags & TAGMASK)) {
+				occupied |= c->tags;
+			}
+		}
+		monitor_occupied[logicalindex] = occupied & TAGMASK;
+	}
+	XChangeProperty(dpy, root, netatom[NetDwmMonitorOccupied], XA_INTEGER, 32,
+		PropModeReplace, (unsigned char *)monitor_occupied, count);
+	free(monitor_occupied);
 	updatefullscreenmonitors();
 }
 

@@ -113,7 +113,7 @@ PanelWindow {
 
                                     label: root.state.workspaceNames[modelData]
                                     selected: modelData === root.state.currentWorkspaceForScreen(root.screen)
-                                    occupied: root.state.workspaceOccupied(modelData)
+                                    occupied: root.state.workspaceOccupiedForScreen(root.screen, modelData)
                                     onClicked: root.state.switchWorkspaceForScreen(root.screen, modelData)
                                 }
                             }
@@ -189,7 +189,7 @@ PanelWindow {
                         }
                     }
 
-                    RunningAppsArea { state: root.state }
+                    // RunningAppsArea deaktiviert
 
                     // Layout-Widget - vor dem Update-Widget
                     PanelPill {

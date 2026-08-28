@@ -18,7 +18,7 @@ clean_line() {
 
 root_property_value() {
 	prop=$1
-	xprop -root "$prop" 2>/dev/null | sed -n 's/^[^=]*= //p'
+	xprop -root "$prop" 2>/dev/null | sed -n 's/^[^=]*= //p; s/^[^#]*# //p'
 }
 
 root_status() {
@@ -164,9 +164,15 @@ show_state() {
 			tr -d '[:space:]'
 	)
 	monitor_desktops=${monitor_desktops:-$current}
+	monitor_occupied=$(
+		root_property_value _DWM_MONITOR_OCCUPIED |
+			tr -d '[:space:]'
+	)
+	monitor_occupied=${monitor_occupied:-0}
 
 	printf 'current=%s\n' "$current"
 	printf 'monitor_desktops=%s\n' "$monitor_desktops"
+	printf 'monitor_occupied=%s\n' "$monitor_occupied"
 	printf 'count=%s\n' "$count"
 	printf 'names=%s\n' "$names"
 	printf 'occupied=%s\n' "$occupied"

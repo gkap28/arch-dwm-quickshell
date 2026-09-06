@@ -189,6 +189,14 @@ fi
 # ── Phase 2: Background services ───────────────────────────────────────────────
 
 # Wallpaper
+
+# Sound-Server (Pipewire + WirePlumber)
+if command -v pipewire >/dev/null 2>&1; then
+	pipewire >/dev/null 2>&1 &
+fi
+if command -v wireplumber >/dev/null 2>&1; then
+	wireplumber >/dev/null 2>&1 &
+fi
 if command -v nitrogen >/dev/null 2>&1; then
 	nitrogen --restore >/dev/null 2>&1 &
 fi

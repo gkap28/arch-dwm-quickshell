@@ -192,6 +192,16 @@ install-user:
 	@test -n "${USER_HOME}" || { echo "USER_HOME could not be determined." >&2; exit 1; }
 	@test "$$(id -u)" -ne 0 || { echo "Refusing to install user files as root. Run install-user as the target user." >&2; exit 1; }
 	@echo "==> Installing user files for ${OWNER}..."
+	@if [ -f /etc/os-release ]; then \
+		. /etc/os-release; \
+		case "$$ID" in \
+			void) CP_FLAGS="-a -r -L --no-preserve=ownership" ;; \
+			arch|archlinux) CP_FLAGS="-aL -n --no-preserve=ownership" ;; \
+			*) CP_FLAGS="-aL -n --no-preserve=ownership" ;; \
+		esac; \
+	else \
+		CP_FLAGS="-aL -n --no-preserve=ownership"; \
+	fi
 	if [ ! -e "${USER_HOME}/.xinitrc" ]; then \
 		install -Dm644 scripts/.xinitrc "${USER_HOME}/.xinitrc"; \
 	else \
@@ -225,7 +235,7 @@ install-user:
 			continue; \
 		fi; \
 		mkdir -p "$$dst"; \
-		cp -aL -n --no-preserve=ownership "$$dir"/. "$$dst"/; \
+		cp -a $$CP_FLAGS "$$dir"/. "$$dst"/; \
 	done
 	@echo "==> Seeding dwm-scoped XDG autostart overrides..."
 	HOME="${USER_HOME}" XDG_CONFIG_HOME="${XDG_CONFIG_HOME}" \
@@ -235,7 +245,7 @@ install-user:
 	test -n "${CFG_DIR}"
 	rm -rf "${CFG_DIR}/quickshell"
 	mkdir -p "${CFG_DIR}/quickshell"
-	cp -aL --no-preserve=ownership config/quickshell/. "${CFG_DIR}/quickshell"/
+	cp -a $$CP_FLAGS config/quickshell/. "${CFG_DIR}/quickshell"/
 	@echo "==> Seeding user config (skipping existing files)..."
 	mkdir -p ${CFG_DIR}/dwm-titus
 	test -f ${CFG_DIR}/dwm-titus/hotkeys.toml || install -Dm644 config/hotkeys.toml ${CFG_DIR}/dwm-titus/hotkeys.toml

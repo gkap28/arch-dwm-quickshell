@@ -197,8 +197,8 @@ fi
 if command -v wireplumber >/dev/null 2>&1; then
 	wireplumber >/dev/null 2>&1 &
 fi
-if command -v azote >/dev/null 2>&1; then
-	azote --restore >/dev/null 2>&1 &
+if [ -f "${HOME}/.fehbg" ]; then
+	"${HOME}/.fehbg" >/dev/null 2>&1 &
 fi
 
 # Compositor

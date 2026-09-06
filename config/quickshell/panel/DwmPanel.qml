@@ -43,7 +43,7 @@ PanelWindow {
 
     implicitHeight: Theme.panelHeight
     color: Theme.barBackground
-    exclusiveZone: -1
+    exclusiveZone: 40
     aboveWindows: true
 
     anchors {

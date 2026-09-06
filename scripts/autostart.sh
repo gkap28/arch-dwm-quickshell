@@ -197,8 +197,8 @@ fi
 if command -v wireplumber >/dev/null 2>&1; then
 	wireplumber >/dev/null 2>&1 &
 fi
-if command -v nitrogen >/dev/null 2>&1; then
-	nitrogen --restore >/dev/null 2>&1 &
+if command -v azote >/dev/null 2>&1; then
+	azote --restore >/dev/null 2>&1 &
 fi
 
 # Compositor

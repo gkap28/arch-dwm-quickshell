@@ -10,9 +10,9 @@ Item {
     property int updateCount: 0
     property var updateList: []
     property bool checking: false
+    property bool updating: false
     property bool detailVisible: false
 
-    // Timer für automatische Aktualisierung (alle 30 Minuten)
     Timer {
         interval: 1800000
         running: true
@@ -20,7 +20,6 @@ Item {
         onTriggered: root.refresh()
     }
 
-    // Initial laden
     Component.onCompleted: {
         root.refresh()
     }
@@ -35,7 +34,7 @@ Item {
             onStreamFinished: {
                 const output = this.text.trim()
                 root.updateCount = parseInt(output) || 0
-                console.log("Update-Count:", root.updateCount)
+                root.checking = false
             }
         }
 
@@ -64,6 +63,20 @@ Item {
         }
     }
 
+    Process {
+        id: updateInstallProcess
+
+        command: ["sudo", "-n", "xbps-install", "-Su"]
+        running: false
+
+        onRunningChanged: {
+            if (!running) {
+                root.updating = false
+                root.refresh()
+            }
+        }
+    }
+
     function refresh() {
         if (root.checking) return
         root.checking = true
@@ -71,8 +84,15 @@ Item {
     }
 
     function loadDetails() {
-        detailProcess.command = ["bash", "-c", "checkupdates 2>/dev/null | head -20; echo '--- AUR ---'; paru -Qua 2>/dev/null | head -10"]
+        detailProcess.command = ["bash", "-c", "xbps-install -nuM | head -20"]
         detailProcess.running = true
+    }
+
+    function installUpdates() {
+        if (root.updating) return
+        root.updating = true
+        root.detailVisible = true
+        updateInstallProcess.running = true
     }
 
     function toggle() {

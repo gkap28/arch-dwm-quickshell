@@ -15,9 +15,9 @@ PanelPill {
         id: logoImage
 
         anchors.centerIn: parent
-        width: 24
-        height: 25.2
-        source: Qt.resolvedUrl("../assets/ctt_logo.png")
+        width: 31
+        height: 32.2
+        source: Qt.resolvedUrl("../assets/default_logo.png")
         fillMode: Image.PreserveAspectFit
         asynchronous: true
         smooth: true

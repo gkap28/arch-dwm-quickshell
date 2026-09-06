@@ -16,7 +16,7 @@ Scope {
             "id": "reboot",
             "label": "Reboot",
             "detail": "Restart this system",
-            "command": ["systemctl", "reboot"],
+            "command": ["loginctl", "reboot"],
             "confirm": true
         },
         {
@@ -37,7 +37,7 @@ Scope {
             "id": "shutdown",
             "label": "Shutdown",
             "detail": "Power off this system",
-            "command": ["systemctl", "poweroff"],
+            "command": ["loginctl", "poweroff"],
             "confirm": true
         }
     ]

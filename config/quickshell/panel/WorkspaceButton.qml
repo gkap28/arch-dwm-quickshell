@@ -27,17 +27,17 @@ Rectangle {
         verticalAlignment: Text.AlignVCenter
     }
 
-    // Belegt-Indikator (nur für nicht-ausgewählte Workspaces)
+    // Belegt-Indikator (links oben neben der Zahl)
     Rectangle {
         visible: root.occupied && !root.selected
         width: 6
         height: 6
         radius: 1
         color: Theme.accent
-        anchors.right: parent.right
-        anchors.rightMargin: 0
-        anchors.top: parent.top
-        anchors.topMargin: 0
+        anchors.right: labelText.left
+        anchors.rightMargin: 4
+        anchors.bottom: labelText.verticalCenter
+        anchors.bottomMargin: 2
     }
 
     MouseArea {

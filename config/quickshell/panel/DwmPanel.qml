@@ -344,7 +344,7 @@ PanelWindow {
                     }
 
                     PanelPill {
-                        visible: root.controlCenterModel.showBluetoothWidget
+                        visible: false
                         Layout.preferredWidth: bluetoothRow.implicitWidth + Theme.compactWidgetHorizontalPadding * 2
                         Layout.preferredHeight: Theme.compactWidgetSize
                         active: root.bluetoothModel.visible
@@ -370,61 +370,6 @@ PanelWindow {
                             onClicked: {
                                 root.popupRequested(root, "bluetooth");
                                 root.bluetoothModel.toggle();
-                            }
-                        }
-                    }
-
-                    PanelPill {
-                        id: networkPill
-                        visible: root.controlCenterModel.showNetworkWidget
-                        Layout.preferredWidth: 60
-                        Layout.preferredHeight: Theme.compactWidgetSize
-                        active: root.networkModel.visible
-                        hovered: networkMouse.containsMouse
-
-                        property string speedText: "--"
-
-                        Process {
-                            id: netSpeedProc
-                            command: ["sh", "-c", "speedtest-cli --simple 2>/dev/null | grep Download | awk '{print $2}'"]
-                            running: false
-
-                            stdout: SplitParser {
-                                onRead: function(data) {
-                                    const cleaned = String(data).trim();
-                                    if (cleaned !== "") {
-                                        networkPill.speedText = cleaned + " Mbps";
-                                    }
-                                }
-                            }
-                        }
-
-                        Timer {
-                            interval: 600000
-                            running: true
-                            repeat: true
-                            onTriggered: netSpeedProc.running = true
-                        }
-
-                        Component.onCompleted: netSpeedProc.running = true
-
-                        UiText {
-                            id: netSpeedText
-                            anchors.centerIn: parent
-                            text: "↓" + networkPill.speedText
-                            color: Theme.textStrong
-                            font.pixelSize: Theme.panelFontSize
-                            font.family: Theme.fontFamily
-                        }
-
-                        MouseArea {
-                            id: networkMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                root.popupRequested(root, "network");
-                                root.networkModel.toggle();
                             }
                         }
                     }

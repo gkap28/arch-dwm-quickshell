@@ -73,6 +73,34 @@ ClickAwayPopup {
 
             Rectangle {
                 Layout.fillWidth: true
+                Layout.preferredHeight: 80
+                visible: root.updateModel.updating
+                color: Theme.surface
+                radius: Theme.radius
+                border.color: Theme.border
+                border.width: 1
+
+                Flickable {
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    contentWidth: width
+                    contentHeight: installOutputText.implicitHeight
+                    clip: true
+
+                    Text {
+                        id: installOutputText
+                        width: parent.width
+                        text: root.updateModel.installOutput || "Warte auf Ausgabe..."
+                        color: Theme.text
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.smallFontSize
+                        wrapMode: Text.Wrap
+                    }
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
                 Layout.preferredHeight: 1
                 color: Theme.border
             }

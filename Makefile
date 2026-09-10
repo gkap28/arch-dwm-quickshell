@@ -203,7 +203,7 @@ install-user:
 		CP_FLAGS="-aL -n --no-preserve=ownership"; \
 	fi
 	if [ ! -e "${USER_HOME}/.xinitrc" ]; then \
-		install -Dm644 scripts/.xinitrc "${USER_HOME}/.xinitrc"; \
+		install -Dm755 scripts/.xinitrc "${USER_HOME}/.xinitrc"; \
 	else \
 		echo "  Preserving existing ${USER_HOME}/.xinitrc"; \
 	fi
@@ -319,7 +319,7 @@ release: dwm
 	root="$$work/${RELEASE_NAME}"; \
 	mkdir -p "$$root" release; \
 	install -Dm755 dwm "$$root/dwm"; \
-	install -Dm644 scripts/.xinitrc "$$root/.xinitrc"; \
+	install -Dm755 scripts/.xinitrc "$$root/.xinitrc"; \
 	sed "s|@PREFIX@|${PREFIX}|g" dwm.desktop > "$$root/dwm.desktop"; \
 	cp -a assets config scripts "$$root/"; \
 	find "$$root" -exec touch -h -d "@${SOURCE_DATE_EPOCH}" {} +; \

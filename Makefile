@@ -246,6 +246,12 @@ install-user:
 	rm -rf "${CFG_DIR}/quickshell"
 	mkdir -p "${CFG_DIR}/quickshell"
 	cp -a $$CP_FLAGS config/quickshell/. "${CFG_DIR}/quickshell"/
+	if [ -f /etc/arch-release ]; then \
+		cp -f config/quickshell/updates/UpdateModel.arch.qml "${CFG_DIR}/quickshell/updates/UpdateModel.qml"; \
+		rm -f "${CFG_DIR}/quickshell/updates/UpdateModel.arch.qml"; \
+	else \
+		rm -f "${CFG_DIR}/quickshell/updates/UpdateModel.arch.qml"; \
+	fi
 	@echo "==> Seeding user config (skipping existing files)..."
 	mkdir -p ${CFG_DIR}/dwm-titus
 	test -f ${CFG_DIR}/dwm-titus/hotkeys.toml || install -Dm644 config/hotkeys.toml ${CFG_DIR}/dwm-titus/hotkeys.toml

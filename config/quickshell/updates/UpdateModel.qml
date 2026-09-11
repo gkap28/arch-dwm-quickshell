@@ -68,7 +68,7 @@ Item {
     Process {
         id: updateInstallProcess
 
-        command: ["sudo", "-n", "stdbuf", "-oL", "-eL", "xbps-install", "-Suy"]
+        command: ["sudo", "-n", "xbps-install", "-Suy"]
         running: false
 
         stdout: SplitParser {
@@ -87,6 +87,9 @@ Item {
             if (!running) {
                 root.updating = false
                 root.refresh()
+                Qt.callLater(function() {
+                    root.detailVisible = false
+                })
             }
         }
     }
@@ -96,7 +99,7 @@ Item {
     }
 
     function refresh() {
-        if (root.checking) return
+        if (updateProcess.running) return
         root.checking = true
         updateProcess.running = true
     }
@@ -108,8 +111,8 @@ Item {
 
     function installUpdates() {
         if (root.updating) return
+        if (root.updateCount === 0) return
         root.updating = true
-        root.detailVisible = true
         root.installOutput = ""
         updateInstallProcess.running = true
     }

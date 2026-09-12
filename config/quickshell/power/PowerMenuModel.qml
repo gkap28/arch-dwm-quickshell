@@ -16,7 +16,7 @@ Scope {
             "id": "reboot",
             "label": "Reboot",
             "detail": "Restart this system",
-            "command": ["loginctl", "reboot"],
+            "command": ["/usr/bin/systemctl", "reboot"],
             "confirm": true
         },
         {
@@ -37,7 +37,7 @@ Scope {
             "id": "shutdown",
             "label": "Shutdown",
             "detail": "Power off this system",
-            "command": ["loginctl", "poweroff"],
+            "command": ["/usr/bin/systemctl", "poweroff"],
             "confirm": true
         }
     ]
@@ -107,8 +107,13 @@ Scope {
 
     Process {
         id: actionProcess
-
         command: ["sh", "-c", "exit 0"]
         running: false
+
+        onRunningChanged: {
+        }
+
+        onExited: function(exitCode, exitStatus) {
+        }
     }
 }

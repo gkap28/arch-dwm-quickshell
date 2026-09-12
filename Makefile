@@ -24,6 +24,7 @@ OBJ = ${SRC:.c=.o}
 INSTALL_COMMANDS = \
 	scripts/active-audio \
 	scripts/check-deps.sh \
+	scripts/check-updates.sh \
 	scripts/disable-powersaving \
 	scripts/dwm-controlcenter \
 	scripts/dwm-default-apps \

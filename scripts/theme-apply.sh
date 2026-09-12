@@ -92,7 +92,7 @@ gtk_theme_available() {
 default_gtk_theme() {
 	if [[ "$DARK_MODE" == "true" ]]; then
 		case "$THEME_NAME" in
-		nord) printf '%s\n' "Nordic" ;;
+		nord) printf '%s\n' "Nordic-darker" ;;
 		*) printf '%s\n' "Adwaita-dark" ;;
 		esac
 	else

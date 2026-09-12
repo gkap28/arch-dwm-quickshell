@@ -247,6 +247,8 @@ install-user:
 	rm -rf "${CFG_DIR}/quickshell"
 	mkdir -p "${CFG_DIR}/quickshell"
 	cp -a $$CP_FLAGS config/quickshell/. "${CFG_DIR}/quickshell"/
+	mkdir -p "${CFG_DIR}/picom"
+	cp -f config/picom/picom.conf "${CFG_DIR}/picom/picom.conf"
 	if [ -f /etc/arch-release ]; then \
 		cp -f config/quickshell/updates/UpdateModel.arch.qml "${CFG_DIR}/quickshell/updates/UpdateModel.qml"; \
 		rm -f "${CFG_DIR}/quickshell/updates/UpdateModel.arch.qml"; \

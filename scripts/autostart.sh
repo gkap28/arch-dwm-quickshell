@@ -191,11 +191,10 @@ fi
 # Wallpaper
 
 # Sound-Server (Pipewire + WirePlumber)
-if command -v pipewire >/dev/null 2>&1; then
-	pipewire >/dev/null 2>&1 &
-fi
-if command -v wireplumber >/dev/null 2>&1; then
-	wireplumber >/dev/null 2>&1 &
+# Sound-Server: systemd startet pipewire/wireplumber bereits.
+# Restart, falls die Race Condition beim Boot die Sockets blockiert.
+if command -v systemctl >/dev/null 2>&1; then
+	systemctl --user restart pipewire wireplumber pipewire-pulse >/dev/null 2>&1 || true
 fi
 if [ -f "${HOME}/.fehbg" ]; then
 	"${HOME}/.fehbg" >/dev/null 2>&1 &

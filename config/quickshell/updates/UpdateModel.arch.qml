@@ -88,7 +88,7 @@ Item {
                 root.updating = false
                 root.refresh()
                 Qt.callLater(function() {
-                    root.detailVisible = false
+                    root.close(); root.installOutput = ""
                 })
             }
         }

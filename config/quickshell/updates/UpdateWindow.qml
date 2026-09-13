@@ -11,6 +11,7 @@ ClickAwayPopup {
     required property var updateModel
     required property var panelWindow
 
+
     readonly property int cardWidth: 360
     readonly property int cardHeight: 420
     readonly property int edgeMargin: Theme.rowSpacing

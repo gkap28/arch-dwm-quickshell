@@ -68,7 +68,7 @@ Item {
     Process {
         id: updateInstallProcess
 
-        command: ["sudo", "-n", "pacman", "-Syu", "--noconfirm"]
+        command: ["sudo", "-n", "xbps-install", "-Suy"]
         running: false
 
         stdout: SplitParser {
@@ -105,7 +105,7 @@ Item {
     }
 
     function loadDetails() {
-        detailProcess.command = ["bash", "-c", "checkupdates | head -20"]
+        detailProcess.command = ["bash", "-c", "xbps-install -nuM | head -20"]
         detailProcess.running = true
     }
 

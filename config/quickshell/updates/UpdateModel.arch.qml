@@ -68,7 +68,7 @@ Item {
     Process {
         id: updateInstallProcess
 
-        command: ["sudo", "-n", "pacman", "-Syu", "--noconfirm"]
+        command: ["yay", "-Syu", "--noconfirm", "--answerclean", "None", "--answerdiff", "None", "--answeredit", "None", "--answerupgrade", "None"]
         running: false
 
         stdout: SplitParser {
@@ -105,7 +105,7 @@ Item {
     }
 
     function loadDetails() {
-        detailProcess.command = ["bash", "-c", "checkupdates | head -20"]
+        detailProcess.command = ["bash", "-c", "{ checkupdates; yay -Qua; } 2>/dev/null | head -30"]
         detailProcess.running = true
     }
 

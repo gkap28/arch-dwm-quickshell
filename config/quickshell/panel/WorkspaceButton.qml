@@ -18,6 +18,7 @@ Rectangle {
     border.width: selected ? Theme.pillBorderWidth : 0
 
     Text {
+        id: labelText
         anchors.centerIn: parent
         text: root.label
         color: root.selected ? Theme.accent : (root.occupied ? Theme.text : Theme.textMuted)

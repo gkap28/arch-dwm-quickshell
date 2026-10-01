@@ -504,15 +504,6 @@ PanelWindow {
     }
 
     PanelTooltip {
-        visible: networkMouse.containsMouse
-        anchorWindow: root
-        anchorItem: networkMouse
-        label: root.networkModel.statusText
-        anchorY: Theme.panelHeight
-        rightAligned: true
-    }
-
-    PanelTooltip {
         visible: controlsMouse.containsMouse
         anchorWindow: root
         anchorItem: controlsMouse

@@ -501,6 +501,65 @@ bluetooth_disconnect() {
 command=$1
 shift
 
+audio_snapshot() {
+	default_sink=$(pactl info 2>/dev/null | awk '/Default Sink:/ {print $3}')
+	default_source=$(pactl info 2>/dev/null | awk '/Default Source:/ {print $3}')
+
+	printf 'audio-protocol\t1\t1\n'
+	printf 'provider\taudio\tok\tpipewire\tpipewire\n'
+
+	pactl list sinks 2>/dev/null | awk -v defsink="$default_sink" '
+		BEGIN { FS=":"; name=""; desc=""; muted="no"; vol="0" }
+		/^Sink #/ {
+			if (name != "") {
+				isdef = (name == defsink) ? "yes" : "no"
+				printf "audio-output\t%s\t%s\t%s\t%s\t%s\n", name, desc, isdef, muted, vol
+			}
+			name=""; desc=""; muted="no"; vol="0"
+		}
+		/^\tName:/ { gsub(/^[ \t]+/, "", $2); name=$2 }
+		/^\tDescription:/ { sub(/^[ \t]+/, "", $2); desc=$2 }
+		/^\tMute:/ { gsub(/^[ \t]+/, "", $2); muted=($2=="yes") ? "yes" : "no" }
+		/^\tVolume:/ {
+			n=split($2, parts, " ")
+			for (i=1; i<=n; i++) {
+				if (parts[i] ~ /^[0-9]+%$/) { vol=parts[i]; sub(/%/, "", vol); break }
+			}
+		}
+		END {
+			if (name != "") {
+				isdef = (name == defsink) ? "yes" : "no"
+				printf "audio-output\t%s\t%s\t%s\t%s\t%s\n", name, desc, isdef, muted, vol
+			}
+		}
+	'
+
+	pactl list sources 2>/dev/null | awk -v defsource="$default_source" '
+		BEGIN { FS=":"; name=""; desc=""; muted="no"; vol="0" }
+		/^Source #/ {
+			if (name != "" && name !~ /\.monitor$/) {
+				isdef = (name == defsource) ? "yes" : "no"
+				printf "audio-input\t%s\t%s\t%s\t%s\t%s\n", name, desc, isdef, muted, vol
+			}
+			name=""; desc=""; muted="no"; vol="0"
+		}
+		/^\tName:/ { gsub(/^[ \t]+/, "", $2); name=$2 }
+		/^\tDescription:/ { sub(/^[ \t]+/, "", $2); desc=$2 }
+		/^\tMute:/ { gsub(/^[ \t]+/, "", $2); muted=($2=="yes") ? "yes" : "no" }
+		/^\tVolume:/ {
+			n=split($2, parts, " ")
+			for (i=1; i<=n; i++) {
+				if (parts[i] ~ /^[0-9]+%$/) { vol=parts[i]; sub(/%/, "", vol); break }
+			}
+		}
+		END {
+			if (name != "" && name !~ /\.monitor$/) {
+				isdef = (name == defsource) ? "yes" : "no"
+				printf "audio-input\t%s\t%s\t%s\t%s\t%s\n", name, desc, isdef, muted, vol
+			}
+		}
+	'
+}
 case "$command" in
 volume-status)
 	[ "$#" -eq 0 ] || usage
@@ -585,6 +644,10 @@ bluetooth-connect)
 	;;
 bluetooth-disconnect)
 	bluetooth_disconnect "$@"
+	;;
+audio-snapshot)
+	[ "$#" -eq 0 ] || usage
+	audio_snapshot
 	;;
 *)
 	usage

@@ -43,6 +43,9 @@ Singleton {
     readonly property string menuSelectedBackground: surfaceActive
     readonly property string menuSelectedText: accentSecondary
     readonly property string controlNormalFill: surface
+    readonly property int panelSliderHeight: 32
+    readonly property int panelSliderTrackHeight: 6
+    readonly property int panelSliderKnobSize: 16
     readonly property string controlNormalBorder: border
     readonly property string controlNormalText: text
     readonly property string controlHoverFill: surfaceHover

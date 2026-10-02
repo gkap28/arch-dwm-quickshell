@@ -47,7 +47,7 @@ Scope {
     }
 
     function selectAudioSource() {
-        if (root.nativeAudioReady()) {
+        if (false && root.nativeAudioReady()) {
             nativeGraceTimer.stop();
             if (fallbackWatchProcess.running) fallbackWatchProcess.running = false;
             if (root.audioSourceKind !== "native") {

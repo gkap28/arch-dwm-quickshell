@@ -7,13 +7,19 @@ import qs.core
 Scope {
     id: root
 
+    readonly property bool initialLoading: audioSnapshotProcess.running || volumeStatusProcess.running
+        || micStatusProcess.running || mediaStatusProcess.running || bluetoothStatusProcess.running
+
     property bool visible: false
+    property bool settingsVisible: false
     property bool busy: false
     property string volumeText: "VOL unavailable"
     property int volumePercent: 0
     property bool volumeMuted: false
     property string volumeDisplayText: volumeText + (outputDeviceDescription.length > 0 ? " - " + outputDeviceDescription : "")
     property var outputDevices: []
+    property var inputDevices: []
+    property var audioStreams: []
     property string outputDeviceName: ""
     property string outputDeviceDescription: ""
     property string micText: "MIC unavailable"
@@ -24,33 +30,90 @@ Scope {
     property string mediaTitle: ""
     property string bluetoothText: "BT unavailable"
     property string message: ""
+    property string audioProviderState: "idle"
+    property string audioProviderDetail: ""
+    property string audioSourceKind: "none"
+    property int audioSourceGeneration: 0
+    property int fallbackProcessGeneration: 0
+    property int mutationGeneration: 0
+    property int appliedMutationGeneration: 0
+    property int actionProcessGeneration: 0
+    property string mutationOrigin: ""
     readonly property var audioSink: Pipewire.defaultAudioSink
     readonly property var audioSource: Pipewire.defaultAudioSource
 
-    function refreshAudioStatus() {
-        // Immer das Skript verwenden, da Pipewire-Integration auf Void nicht funktioniert
-        root.volumeText = "VOL unavailable";
-        root.volumeMuted = false;
-        root.outputDeviceName = "";
-        root.outputDeviceDescription = "";
-        if (!volumeStatusProcess.running) {
-            volumeStatusProcess.running = true;
-        }
+    function nativeAudioReady() {
+        return root.audioSink !== null && root.audioSink.ready && root.audioSink.audio !== null;
+    }
 
-        root.micText = "MIC unavailable";
-        if (!micStatusProcess.running) {
-            micStatusProcess.running = true;
+    function selectAudioSource() {
+        if (root.nativeAudioReady()) {
+            nativeGraceTimer.stop();
+            if (fallbackWatchProcess.running) fallbackWatchProcess.running = false;
+            if (root.audioSourceKind !== "native") {
+                root.audioSourceGeneration++;
+                root.audioSourceKind = "native";
+            }
+        } else if ((root.visible || root.settingsVisible) && !nativeGraceTimer.running
+                && root.audioSourceKind !== "fallback") {
+            nativeGraceTimer.restart();
+        }
+    }
+
+    function openSettings() {
+        root.settingsVisible = true;
+        root.refresh();
+        root.selectAudioSource();
+    }
+
+    function closeSettings() {
+        root.settingsVisible = false;
+        if (!root.visible && fallbackWatchProcess.running) fallbackWatchProcess.running = false;
+        if (!root.visible) nativeGraceTimer.stop();
+    }
+
+    function refreshAudioStatus() {
+        const sink = root.audioSink;
+
+        if (sink !== null && sink.ready && sink.audio !== null) {
+            root.volumePercent = root.clampPercent(sink.audio.volume * 100);
+            root.volumeMuted = sink.audio.muted;
+            root.volumeText = (root.volumeMuted ? "VOL muted " : "VOL ") + root.volumePercent.toString() + "%";
+            root.outputDeviceName = sink.name;
+            root.outputDeviceDescription = sink.description.length > 0 ? sink.description : sink.name;
+        } else {
+            root.volumeText = "VOL unavailable";
+            root.volumeMuted = false;
+            root.outputDeviceName = "";
+            root.outputDeviceDescription = "";
+            if (!volumeStatusProcess.running) {
+                volumeStatusProcess.running = true;
+            }
+        }
+        root.selectAudioSource();
+
+        const source = root.audioSource;
+        if (source !== null && source.ready && source.audio !== null) {
+            root.micText = source.audio.muted ? "MIC muted" : "MIC on";
+        } else {
+            root.micText = "MIC unavailable";
+            if (!micStatusProcess.running) {
+                micStatusProcess.running = true;
+            }
         }
     }
 
     function open() {
         root.visible = true;
         root.refresh();
+        root.selectAudioSource();
     }
 
     function close() {
         root.visible = false;
         root.message = "";
+        if (!root.settingsVisible && fallbackWatchProcess.running) fallbackWatchProcess.running = false;
+        if (!root.settingsVisible) nativeGraceTimer.stop();
     }
 
     function toggle() {
@@ -63,7 +126,7 @@ Scope {
 
     function refresh() {
         root.refreshAudioStatus();
-        root.refreshOutputDevices();
+        root.refreshAudioInventory();
         if (!mediaStatusProcess.running) {
             mediaStatusProcess.running = true;
         }
@@ -72,9 +135,84 @@ Scope {
         }
     }
 
-    function refreshOutputDevices() {
-        if (!outputDevicesProcess.running) {
-            outputDevicesProcess.running = true;
+    function refreshAudioInventory() {
+        if (!audioSnapshotProcess.running) audioSnapshotProcess.running = true;
+    }
+
+    function parseAudioSnapshot(text) {
+        const outputs = [];
+        const inputs = [];
+        const streams = [];
+        let protocolValid = false;
+        let providerSeen = false;
+        let malformed = false;
+        let defaultOutput = null;
+        let defaultInput = null;
+        for (const line of text.trim().split("\n")) {
+            if (line.length === 0) continue;
+            const fields = line.split("\t");
+            if (fields[0] === "audio-protocol") {
+                protocolValid = fields.length >= 3 && fields[1] === "1";
+            } else if (fields[0] === "provider") {
+                if (fields.length < 5 || fields[1] !== "audio") { malformed = true; continue; }
+                providerSeen = true;
+                root.audioProviderState = fields[2];
+                root.audioProviderDetail = fields[4];
+            } else if (fields[0] === "audio-output" && fields.length >= 6) {
+                const percent = Number(fields[5]);
+                if ((fields[3] !== "yes" && fields[3] !== "no")
+                        || (fields[4] !== "yes" && fields[4] !== "no")
+                        || !isFinite(percent) || percent < 0 || percent > 100) {
+                    malformed = true;
+                    continue;
+                }
+                const item = { "name": fields[1], "description": fields[2], "isDefault": fields[3] === "yes",
+                    "muted": fields[4] === "yes", "volume": Math.round(percent) };
+                outputs.push(item);
+                if (item.isDefault) defaultOutput = item;
+            } else if (fields[0] === "audio-input" && fields.length >= 6) {
+                const percent = Number(fields[5]);
+                if ((fields[3] !== "yes" && fields[3] !== "no")
+                        || (fields[4] !== "yes" && fields[4] !== "no")
+                        || !isFinite(percent) || percent < 0 || percent > 100) {
+                    malformed = true;
+                    continue;
+                }
+                const item = { "name": fields[1], "description": fields[2], "isDefault": fields[3] === "yes",
+                    "muted": fields[4] === "yes", "volume": Math.round(percent) };
+                inputs.push(item);
+                if (item.isDefault) defaultInput = item;
+            } else if (fields[0] === "audio-stream" && fields.length >= 6) {
+                const percent = Number(fields[5]);
+                if ((fields[4] !== "yes" && fields[4] !== "no")
+                        || !isFinite(percent) || percent < 0 || percent > 100) {
+                    malformed = true;
+                    continue;
+                }
+                streams.push({ "index": fields[1], "application": fields[2], "description": fields[3],
+                    "muted": fields[4] === "yes", "volume": Math.round(percent) });
+            }
+        }
+        if (!protocolValid || !providerSeen || malformed) {
+            root.outputDevices = [];
+            root.inputDevices = [];
+            root.audioStreams = [];
+            root.audioProviderState = "failure";
+            root.audioProviderDetail = !protocolValid ? "Unsupported audio protocol" : "Malformed audio provider record";
+            return;
+        }
+        root.outputDevices = outputs;
+        root.inputDevices = inputs;
+        root.audioStreams = streams;
+        if (defaultOutput !== null && root.audioSourceKind === "fallback") {
+            root.volumePercent = defaultOutput.volume;
+            root.volumeMuted = defaultOutput.muted;
+            root.volumeText = (defaultOutput.muted ? "VOL muted " : "VOL ") + defaultOutput.volume + "%";
+            root.outputDeviceName = defaultOutput.name;
+            root.outputDeviceDescription = defaultOutput.description;
+        }
+        if (defaultInput !== null && root.audioSourceKind === "fallback") {
+            root.micText = defaultInput.muted ? "MIC muted" : "MIC on";
         }
     }
 
@@ -175,12 +313,15 @@ Scope {
         return Math.max(0, Math.min(100, number));
     }
 
-    function runAction(action, args) {
+    function runAction(action, args, origin) {
         if (root.busy) {
             return;
         }
 
         root.busy = true;
+        root.mutationGeneration++;
+        root.actionProcessGeneration = root.mutationGeneration;
+        root.mutationOrigin = origin || "panel";
         root.message = "";
         actionProcess.command = Commands.controlsHelperCommand(action, args || []);
         actionProcess.running = true;
@@ -202,13 +343,23 @@ Scope {
         root.runAction("volume-set", [root.clampPercent(percent).toString() + "%"]);
     }
 
-    function outputSetDefault(name) {
+    function outputSetDefault(name, origin) {
         if (name.length === 0 || name === root.outputDeviceName) {
             return;
         }
 
-        root.runAction("output-set-default", [name]);
+        root.runAction("output-set-default", [name], origin);
     }
+
+    function inputSetDefault(name, origin) { root.runAction("input-set-default", [name], origin); }
+    function inputVolumeSet(name, percent, origin) {
+        root.runAction("input-volume-set", [name, root.clampPercent(percent).toString() + "%"], origin);
+    }
+    function inputToggleMute(name, origin) { root.runAction("input-toggle-mute", [name], origin); }
+    function streamVolumeSet(index, percent, origin) {
+        root.runAction("stream-volume-set", [index, root.clampPercent(percent).toString() + "%"], origin);
+    }
+    function streamToggleMute(index, origin) { root.runAction("stream-toggle-mute", [index], origin); }
 
     function mediaPlayPause() {
         root.runAction("media-play-pause");
@@ -231,7 +382,7 @@ Scope {
 
         function onDefaultAudioSinkChanged() {
             root.refreshAudioStatus();
-            root.refreshOutputDevices();
+            root.refreshAudioInventory();
         }
 
         function onDefaultAudioSourceChanged() {
@@ -247,14 +398,14 @@ Scope {
         target: Pipewire.nodes
 
         function onObjectInsertedPost(object, index) {
-            if (root.visible) {
-                root.refreshOutputDevices();
+            if (root.visible || root.settingsVisible) {
+                root.refreshAudioInventory();
             }
         }
 
         function onObjectRemovedPost(object, index) {
-            if (root.visible) {
-                root.refreshOutputDevices();
+            if (root.visible || root.settingsVisible) {
+                root.refreshAudioInventory();
             }
         }
     }
@@ -295,6 +446,59 @@ Scope {
         }
     }
 
+    Timer {
+        id: nativeGraceTimer
+        interval: 3000
+        repeat: false
+        onTriggered: {
+            if (!root.nativeAudioReady() && (root.visible || root.settingsVisible)) {
+                root.audioSourceGeneration++;
+                root.audioSourceKind = "fallback";
+                root.fallbackProcessGeneration = root.audioSourceGeneration;
+                root.refreshAudioInventory();
+                fallbackWatchProcess.running = true;
+            }
+        }
+    }
+
+    Process {
+        id: audioSnapshotProcess
+        command: Commands.controlsHelperCommand("audio-snapshot")
+        running: false
+        stdout: StdioCollector { onStreamFinished: root.parseAudioSnapshot(this.text) }
+    }
+
+    Process {
+        id: fallbackWatchProcess
+        command: Commands.controlsHelperCommand("audio-watch")
+        running: false
+        stdout: SplitParser {
+            onRead: function(data) {
+                if (root.audioSourceKind === "fallback"
+                        && root.fallbackProcessGeneration === root.audioSourceGeneration) {
+                    root.refreshAudioInventory();
+                }
+            }
+        }
+        onRunningChanged: {
+            if (!running && root.audioSourceKind === "fallback"
+                    && (root.visible || root.settingsVisible)) fallbackRestartTimer.restart();
+        }
+    }
+
+    Timer {
+        id: fallbackRestartTimer
+        interval: 3000
+        repeat: false
+        onTriggered: {
+            if (root.audioSourceKind === "fallback" && !fallbackWatchProcess.running
+                    && (root.visible || root.settingsVisible)) {
+                root.fallbackProcessGeneration = root.audioSourceGeneration;
+                fallbackWatchProcess.running = true;
+            }
+        }
+    }
+
     Process {
         id: volumeStatusProcess
 
@@ -303,7 +507,10 @@ Scope {
 
         stdout: StdioCollector {
             onStreamFinished: {
-                root.parseVolume(this.text.length > 0 ? this.text : "VOL unavailable");
+                const sink = root.audioSink;
+                if (sink === null || !sink.ready || sink.audio === null) {
+                    root.parseVolume(this.text.length > 0 ? this.text : "VOL unavailable");
+                }
             }
         }
     }
@@ -326,17 +533,6 @@ Scope {
     }
 
     Process {
-        id: outputDevicesProcess
-
-        command: Commands.controlsHelperCommand("output-devices")
-        running: false
-
-        stdout: StdioCollector {
-            onStreamFinished: root.parseOutputDevices(this.text)
-        }
-    }
-
-    Process {
         id: mediaStatusProcess
 
         command: Commands.controlsHelperCommand("media-status")
@@ -348,6 +544,7 @@ Scope {
     }
 
     Process {
+        id: mediaWatchProcess
         command: Commands.controlsHelperCommand("media-watch")
         running: true
 
@@ -355,6 +552,18 @@ Scope {
             onRead: function(data) {
                 root.parseMedia(data);
             }
+        }
+        onRunningChanged: {
+            if (!running) mediaWatchRestartTimer.restart();
+        }
+    }
+
+    Timer {
+        id: mediaWatchRestartTimer
+        interval: 3000
+        repeat: false
+        onTriggered: {
+            if (!mediaWatchProcess.running) mediaWatchProcess.running = true;
         }
     }
 
@@ -381,8 +590,19 @@ Scope {
 
         onRunningChanged: {
             if (!running) {
+                if (root.actionProcessGeneration !== root.mutationGeneration) return;
                 root.busy = false;
+                root.appliedMutationGeneration = root.mutationGeneration;
                 root.refresh();
+            }
+        }
+
+        stderr: StdioCollector {
+            onStreamFinished: {
+                const error = this.text.trim();
+                if (error.length > 0 && root.actionProcessGeneration === root.mutationGeneration) {
+                    root.message = error;
+                }
             }
         }
     }

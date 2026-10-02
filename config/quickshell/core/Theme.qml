@@ -189,4 +189,9 @@ Singleton {
     readonly property int trayItemSize: 24
     readonly property int trayIconSize: 18
     readonly property int closeButtonSize: 30
+
+    function scaledSize(value) {
+        return value;
+    }
+
 }

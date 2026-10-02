@@ -389,7 +389,7 @@ PanelWindow {
                             IconText {
                                 text: root.controlsModel.volumeMuted ? "󰝟" : "󰕾"
                                 color: Theme.textStrong
-                                font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.5)
+                                font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
                             }
 
                             UiText {

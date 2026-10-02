@@ -24,7 +24,7 @@ ClickAwayPopup {
     popupHeight: cardHeight
     popupX: panelWindow ? Math.max(edgeMargin, panelWindow.width - cardWidth - edgeMargin) : edgeMargin
     popupY: Theme.panelHeight
-    onDismissed: updateModel.close()
+    onDismissed: { if (!updateModel.updating) updateModel.close() }
 
     onVisibleChanged: {
         if (visible) {

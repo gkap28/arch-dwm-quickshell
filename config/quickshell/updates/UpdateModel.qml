@@ -68,7 +68,7 @@ Item {
     Process {
         id: updateInstallProcess
 
-        command: ["sudo", "-n", "xbps-install", "-Suy"]
+        command: ["sudo", "-n", "pacman", "-Syu", "--noconfirm"]
         running: false
 
         stdout: SplitParser {
@@ -83,14 +83,21 @@ Item {
             }
         }
 
+        property bool started: false
+
         onRunningChanged: {
-            if (!running) {
-                root.updating = false
-                root.refresh()
-                Qt.callLater(function() {
-                    root.close(); root.installOutput = ""
-                })
+            if (running) {
+                started = true
+                return
             }
+            if (!started) return
+        console.log("INSTALL: onRunningChanged, running=" + running + ", started=" + started)
+            started = false
+            root.updating = false
+            root.refresh()
+            Qt.callLater(function() {
+                root.close(); root.installOutput = ""
+            })
         }
     }
 
@@ -105,15 +112,17 @@ Item {
     }
 
     function loadDetails() {
-        detailProcess.command = ["bash", "-c", "xbps-install -nuM | head -20"]
+        detailProcess.command = ["bash", "-c", "{ checkupdates; } 2>/dev/null | head -30"]
         detailProcess.running = true
     }
 
     function installUpdates() {
+        console.log("INSTALL: start, updating=" + root.updating + ", count=" + root.updateCount)
         if (root.updating) return
         if (root.updateCount === 0) return
         root.updating = true
         root.installOutput = ""
+        console.log("INSTALL: process running")
         updateInstallProcess.running = true
     }
 

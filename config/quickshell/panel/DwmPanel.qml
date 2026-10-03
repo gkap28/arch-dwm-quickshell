@@ -504,7 +504,7 @@ PanelWindow {
     }
 
     PanelTooltip {
-        visible: controlsMouse.containsMouse
+        visible: controlsMouse.containsMouse && !root.controlsModel.visible
         anchorWindow: root
         anchorItem: controlsMouse
         label: root.controlsModel.volumeDisplayText

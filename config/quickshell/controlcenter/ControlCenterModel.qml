@@ -11,14 +11,29 @@ Scope {
     property bool utilityVisible: false
     property string utilityPage: ""
     property var utilityScreen: null
-    property bool showVolumeWidget: true
-    property bool showBluetoothWidget: true
-    property bool showNetworkWidget: true
-    property bool showPowerWidget: true
-    property bool showWorkspaceWidget: true
+    property var panelSettingsModel: null
+    readonly property var widgetIds: ({
+        "Workspaces": "workspaces",
+        "Volume": "volume",
+        "Bluetooth": "bluetooth",
+        "Network": "network",
+        "Power": "power"
+    })
+    readonly property bool showVolumeWidget: root.panelSettingsModel
+        ? root.panelSettingsModel.widgetEnabled("volume") : true
+    readonly property bool showBluetoothWidget: root.panelSettingsModel
+        ? root.panelSettingsModel.widgetEnabled("bluetooth") : true
+    readonly property bool showNetworkWidget: root.panelSettingsModel
+        ? root.panelSettingsModel.widgetEnabled("network") : true
+    readonly property bool showPowerWidget: root.panelSettingsModel
+        ? root.panelSettingsModel.widgetEnabled("power") : true
+    readonly property bool showWorkspaceWidget: root.panelSettingsModel
+        ? root.panelSettingsModel.widgetEnabled("workspaces") : true
     property string message: ""
     property string pendingAction: ""
     property bool actionSucceeded: false
+    property string actionError: ""
+    property var powerModel: null
     property var infoRows: []
     property var themeRows: []
     property var keybindRows: []
@@ -30,6 +45,7 @@ Scope {
             { "id": "reload-wallpaper", "label": "Reload Wallpaper" },
             { "id": "restart-networkmanager", "label": "Restart NetworkManager" },
             { "id": "dependency-check", "label": "Dependency Check" },
+            { "id": "self-heal", "label": "Self-Heal" },
             { "id": "install-missing-deps", "label": "Install Missing Deps" },
             { "id": "open-wallpapers", "label": "Wallpaper Folder" }
         ];
@@ -38,17 +54,13 @@ Scope {
         }
         return availableActions;
     }
-    property var powerRows: []
-    property bool powerDpmsAvailable: false
-    property bool powerDpmsEnabled: false
-    property int powerDpmsTimeout: 600
-    property bool powerLockAvailable: false
-    property bool powerLockEnabled: false
-    property bool powerLockRunning: false
-    property int powerLockTimeout: 600
-    property string powerConfigFile: ""
-
     function openPage(name, message, process) {
+        if (root.powerModel) {
+            if (name === "power" && !root.powerModel.controlCenterVisible)
+                root.powerModel.openControlCenter();
+            else if (name !== "power" && root.powerModel.controlCenterVisible)
+                root.powerModel.closeControlCenter();
+        }
         root.page = name;
         root.message = message;
         if (process && !process.running) {
@@ -62,6 +74,7 @@ Scope {
     }
 
     function close() {
+        if (root.powerModel) root.powerModel.closeControlCenter();
         root.visible = false;
         root.page = "overview";
         root.message = "";
@@ -75,19 +88,15 @@ Scope {
     }
 
     function widgetEnabled(name) {
-        if (name === "Volume") return root.showVolumeWidget;
-        if (name === "Bluetooth") return root.showBluetoothWidget;
-        if (name === "Network") return root.showNetworkWidget;
-        if (name === "Power") return root.showPowerWidget;
-        return root.showWorkspaceWidget;
+        const id = root.widgetIds[name];
+        if (!root.panelSettingsModel || id === undefined) return true;
+        return root.panelSettingsModel.widgetEnabled(id);
     }
 
     function toggleWidget(name) {
-        if (name === "Volume") root.showVolumeWidget = !root.showVolumeWidget;
-        else if (name === "Bluetooth") root.showBluetoothWidget = !root.showBluetoothWidget;
-        else if (name === "Network") root.showNetworkWidget = !root.showNetworkWidget;
-        else if (name === "Power") root.showPowerWidget = !root.showPowerWidget;
-        else if (name === "Workspaces") root.showWorkspaceWidget = !root.showWorkspaceWidget;
+        const id = root.widgetIds[name];
+        if (!root.panelSettingsModel || id === undefined) return;
+        root.panelSettingsModel.toggleWidget(id);
     }
 
     function toggle() {
@@ -134,7 +143,7 @@ Scope {
     }
 
     function openPower() {
-        root.openPage("power", "Loading power settings...", powerStatusProcess);
+        root.openPage("power", "", null);
     }
 
     function openInfo() {
@@ -154,7 +163,7 @@ Scope {
         } else if (root.page === "keybinds") {
             root.openKeybinds();
         } else if (root.page === "power") {
-            root.openPower();
+            if (root.powerModel) root.powerModel.refresh();
         } else if (root.page === "info") {
             root.openInfo();
         }
@@ -180,37 +189,6 @@ Scope {
         return rows;
     }
 
-    function rowValue(rows, key, fallback) {
-        for (let i = 0; i < rows.length; i++) {
-            if (rows[i].key === key) {
-                return rows[i].value;
-            }
-        }
-
-        return fallback;
-    }
-
-    function boolValue(value) {
-        return value === "1" || value === "true" || value === "yes" || value === "enabled";
-    }
-
-    function intValue(value, fallback) {
-        const parsed = parseInt(value, 10);
-        return isNaN(parsed) ? fallback : parsed;
-    }
-
-    function applyPowerRows(rows) {
-        root.powerRows = rows;
-        root.powerDpmsAvailable = root.boolValue(root.rowValue(rows, "dpms_available", "0"));
-        root.powerDpmsEnabled = root.boolValue(root.rowValue(rows, "dpms_enabled", "0"));
-        root.powerDpmsTimeout = root.intValue(root.rowValue(rows, "dpms_timeout", "600"), 600);
-        root.powerLockAvailable = root.boolValue(root.rowValue(rows, "lock_available", "0"));
-        root.powerLockEnabled = root.boolValue(root.rowValue(rows, "lock_enabled", "0"));
-        root.powerLockRunning = root.boolValue(root.rowValue(rows, "lock_running", "0"));
-        root.powerLockTimeout = root.intValue(root.rowValue(rows, "lock_timeout", "600"), 600);
-        root.powerConfigFile = root.rowValue(rows, "config_file", "");
-    }
-
     function runAction(action) {
         if (root.busy) {
             return;
@@ -219,6 +197,7 @@ Scope {
         root.busy = true;
         root.pendingAction = action;
         root.actionSucceeded = false;
+        root.actionError = "";
         root.message = "Running " + action + "...";
         actionProcess.command = Commands.controlCenterHelperCommand("action", [action]);
         actionProcess.running = true;
@@ -233,33 +212,6 @@ Scope {
         root.message = "Applying " + name + "...";
         themeSetProcess.command = Commands.controlCenterHelperCommand("theme-set", [name]);
         themeSetProcess.running = true;
-    }
-
-    function runPowerAction(action, args) {
-        if (root.busy) {
-            return;
-        }
-
-        root.busy = true;
-        root.message = "Updating power settings...";
-        powerActionProcess.command = Commands.controlCenterHelperCommand(action, args || []);
-        powerActionProcess.running = true;
-    }
-
-    function setPowerDpms(enabled) {
-        root.runPowerAction("power-dpms", [enabled ? "on" : "off"]);
-    }
-
-    function setPowerDpmsTimeout(seconds) {
-        root.runPowerAction("power-dpms-timeout", [seconds.toString()]);
-    }
-
-    function setPowerLock(enabled) {
-        root.runPowerAction("power-lock", [enabled ? "on" : "off"]);
-    }
-
-    function setPowerLockTimeout(seconds) {
-        root.runPowerAction("power-lock-timeout", [seconds.toString()]);
     }
 
     Process {
@@ -305,21 +257,6 @@ Scope {
     }
 
     Process {
-        id: powerStatusProcess
-
-        command: Commands.controlCenterHelperCommand("power-status")
-        running: false
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const rows = root.parseRows(this.text, ["key", "value"]);
-                root.applyPowerRows(rows);
-                root.message = "";
-            }
-        }
-    }
-
-    Process {
         id: gtkSettingsCheckProcess
 
         command: ["sh", "-c", "command -v nwg-look >/dev/null 2>&1 && printf yes || printf no"]
@@ -340,12 +277,17 @@ Scope {
             onStreamFinished: root.actionSucceeded = this.text.indexOf("action\t") === 0
         }
 
+        stderr: StdioCollector {
+            onStreamFinished: root.actionError = this.text.trim().slice(0, 1024)
+        }
+
         onRunningChanged: {
             if (!running && root.busy) {
                 root.busy = false;
                 root.message = root.actionSucceeded
                     ? "Action dispatched"
-                    : "Action failed: " + root.pendingAction;
+                    : (root.actionError.length > 0 ? root.actionError
+                        : "Action failed: " + root.pendingAction);
                 root.pendingAction = "";
                 root.refreshCurrentPage();
             }
@@ -367,18 +309,4 @@ Scope {
         }
     }
 
-    Process {
-        id: powerActionProcess
-
-        command: ["sh", "-c", "exit 0"]
-        running: false
-
-        onRunningChanged: {
-            if (!running && root.busy) {
-                root.busy = false;
-                root.message = "Power settings updated";
-                root.openPower();
-            }
-        }
-    }
 }

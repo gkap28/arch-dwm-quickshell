@@ -49,6 +49,10 @@ ShellRoot {
         id: powerMenuModel
     }
 
+    PowerModel {
+        id: powerModel
+    }
+
     NetworkModel {
         id: networkModel
     }

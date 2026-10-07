@@ -185,6 +185,33 @@ power_apply() {
 	return "$power_status"
 }
 
+power_watch() {
+	# Watcht die Power-Konfiguration und gibt bei Aenderung "changed" aus.
+	# Quickshell liest jede Zeile via SplitParser und aktualisiert die UI.
+	power_watch_file=$power_config_file
+	[ -f "$power_watch_file" ] || power_watch_file=/dev/null
+	if command -v inotifywait >/dev/null 2>&1; then
+		while inotifywait -q -e close_write,create,delete,move "$power_watch_file" >/dev/null 2>&1; do
+			printf 'changed\n'
+		done
+	else
+		# Fallback: alle 5 Sekunden pollen
+		power_watch_last=""
+		while true; do
+			if [ -f "$power_watch_file" ]; then
+				power_watch_current=$(stat -c '%Y' "$power_watch_file" 2>/dev/null || printf '')
+			else
+				power_watch_current=""
+			fi
+			if [ "$power_watch_current" != "$power_watch_last" ]; then
+				power_watch_last=$power_watch_current
+				printf 'changed\n'
+			fi
+			sleep 5
+		done
+	fi
+}
+
 power_status() {
 	read_power_config
 
@@ -252,6 +279,24 @@ power_status() {
 	printf 'lock_after\t%s\n' "$power_live_lock_after"
 	printf 'lock_running\t%s\n' "$power_lock_running"
 	printf 'config_file\t%s\n' "$power_config_file"
+
+	# Neue Protokoll-Zeilen fuer Quickshell PowerModel.qml
+	power_dpms_state=unavailable
+	[ "$power_xset_available" = 1 ] && power_dpms_state=available
+	power_lock_state=unavailable
+	[ "$power_lock_available" = 1 ] && power_lock_state=available
+
+	printf 'power-protocol\t1\t0\n'
+	printf 'provider\tpower\t%s\tuser-session\tPower state from xset and light-locker\n' "$power_dpms_state"
+	printf 'power-dpms\t%s\t%s\t%s\tuser-session\tDPMS via xset\n' \
+		"$power_dpms_state" \
+		"$([ "$power_live_dpms_enabled" = 1 ] && printf yes || printf no)" \
+		"$power_live_dpms_timeout"
+	printf 'power-lock\t%s\t%s\t%s\t%s\tuser-session\tAuto lock via light-locker\n' \
+		"$power_lock_state" \
+		"$([ "$power_live_lock_enabled" = 1 ] && printf yes || printf no)" \
+		"$power_live_lock_timeout" \
+		"$([ "$power_lock_running" = 1 ] && printf yes || printf no)"
 }
 
 power_set_dpms() {
@@ -648,7 +693,8 @@ theme-set)
 	theme_set "$2"
 	;;
 keybinds) keybinds ;;
-power-status) power_status ;;
+power-status | power-snapshot) power_status ;;
+power-watch) power_watch ;;
 power-apply) power_apply ;;
 power-dpms)
 	if [ $# -ne 2 ]; then

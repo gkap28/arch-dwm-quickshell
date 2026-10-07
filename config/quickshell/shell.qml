@@ -67,6 +67,7 @@ ShellRoot {
 
     ControlCenterModel {
         id: controlCenterModel
+        powerModel: powerModel
     }
 
     SystemHealthModel {
@@ -495,6 +496,7 @@ ShellRoot {
         controlCenterModel: controlCenterModel
         launcherModel: launcherModel
         panelWindow: root.activePanelWindow
+        powerModel: powerModel
         powerMenuModel: powerMenuModel
         healthModel: systemHealthModel
         settingsModel: settingsModel

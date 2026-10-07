@@ -160,9 +160,17 @@ ClickAwayPopup {
                 ShellButton {
                     Layout.fillWidth: true
                     Layout.preferredHeight: Theme.buttonHeight
-                    label: root.updateModel.updating ? "Läuft..." : "Aktualisieren"
+                    label: root.updateModel.updating ? "Läuft..." : "Update"
                     enabled: !root.updateModel.updating && root.updateModel.updateCount > 0
                     onActivated: root.updateModel.installUpdates()
+                }
+
+                ShellButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.buttonHeight
+                    label: root.updateModel.updating ? "Läuft..." : "Paru Update"
+                    enabled: !root.updateModel.updating && root.updateModel.updateCount > 0
+                    onActivated: root.updateModel.installParuUpdates()
                 }
 
                 ShellButton {

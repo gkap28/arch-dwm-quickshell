@@ -91,7 +91,41 @@ Item {
                 return
             }
             if (!started) return
-        console.log("INSTALL: onRunningChanged, running=" + running + ", started=" + started)
+            started = false
+            root.updating = false
+            root.refresh()
+            Qt.callLater(function() {
+                root.close(); root.installOutput = ""
+            })
+        }
+    }
+
+    Process {
+        id: paruUpdateProcess
+
+        command: ["paru", "-Syu", "--noconfirm"]
+        running: false
+
+        stdout: SplitParser {
+            onRead: function(data) {
+                root.installOutput = root.installOutput + data + "\n"
+            }
+        }
+
+        stderr: SplitParser {
+            onRead: function(data) {
+                root.installOutput = root.installOutput + data + "\n"
+            }
+        }
+
+        property bool started: false
+
+        onRunningChanged: {
+            if (running) {
+                started = true
+                return
+            }
+            if (!started) return
             started = false
             root.updating = false
             root.refresh()
@@ -117,13 +151,21 @@ Item {
     }
 
     function installUpdates() {
-        console.log("INSTALL: start, updating=" + root.updating + ", count=" + root.updateCount)
+        console.log("INSTALL: start (pacman), updating=" + root.updating + ", count=" + root.updateCount)
         if (root.updating) return
         if (root.updateCount === 0) return
         root.updating = true
         root.installOutput = ""
-        console.log("INSTALL: process running")
         updateInstallProcess.running = true
+    }
+
+    function installParuUpdates() {
+        console.log("INSTALL: start (paru), updating=" + root.updating + ", count=" + root.updateCount)
+        if (root.updating) return
+        if (root.updateCount === 0) return
+        root.updating = true
+        root.installOutput = ""
+        paruUpdateProcess.running = true
     }
 
     function toggle() {

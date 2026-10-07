@@ -656,6 +656,70 @@ gtk_settings() {
 	fi
 }
 
+session_action() {
+	case ${1:-} in
+	reboot)
+		if command -v systemctl >/dev/null 2>&1; then
+			systemctl reboot
+			session_action_rc=$?
+		else
+			printf 'systemctl is unavailable\n' >&2
+			return 1
+		fi
+		;;
+	shutdown | poweroff)
+		if command -v systemctl >/dev/null 2>&1; then
+			systemctl poweroff
+			session_action_rc=$?
+		else
+			printf 'systemctl is unavailable\n' >&2
+			return 1
+		fi
+		;;
+	suspend)
+		if command -v systemctl >/dev/null 2>&1; then
+			systemctl suspend
+			session_action_rc=$?
+		else
+			printf 'systemctl is unavailable\n' >&2
+			return 1
+		fi
+		;;
+	logout)
+		if command -v dwm-quit >/dev/null 2>&1; then
+			dwm-quit
+			session_action_rc=$?
+		elif command -v pkill >/dev/null 2>&1; then
+			pkill -TERM -u "$(id -u)" dwm
+			session_action_rc=$?
+		else
+			printf 'No logout command available\n' >&2
+			return 1
+		fi
+		;;
+	lock)
+		if command -v light-locker-command >/dev/null 2>&1; then
+			light-locker-command -l
+			session_action_rc=$?
+		elif command -v loginctl >/dev/null 2>&1; then
+			loginctl lock-session
+			session_action_rc=$?
+		else
+			printf 'No lock command available\n' >&2
+			return 1
+		fi
+		;;
+	*)
+		printf 'unknown session action: %s\n' "${1:-}" >&2
+		return 2
+		;;
+	esac
+	if [ "${session_action_rc:-0}" -ne 0 ]; then
+		return "$session_action_rc"
+	fi
+	printf 'session-action\t%s\taccepted\n' "$1"
+}
+
 action() {
 	case ${1:-} in
 	restart-picom) restart_picom ;;
@@ -730,6 +794,13 @@ action)
 		exit 2
 	fi
 	action "$2"
+	;;
+session-action)
+	if [ $# -ne 2 ]; then
+		usage
+		exit 2
+	fi
+	session_action "$2"
 	;;
 *)
 	usage

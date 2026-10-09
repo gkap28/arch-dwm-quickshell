@@ -98,16 +98,20 @@ Scope {
             return 0;
         }
 
-        // HDMI-A-0 ist immer Monitor 0 / Primary.
-        if (screen.name === "HDMI-A-0") {
+        // Primaer = Monitor mit x=0 (links). Sekundaer = rechts davon.
+        // Unabhaengig von den Monitor-Namen (HDMI-1, DP-3, ...).
+        const screens = Quickshell.screens;
+        if (!screens || screens.length === 0) {
             return 0;
         }
 
-        // DisplayPort-2 ist immer Monitor 1 / Secondary.
-        if (screen.name === "DisplayPort-2") {
-            return 1;
+        // Sortiere nach x-Position; der linkeste ist Index 0.
+        let sorted = screens.slice().sort(function(a, b) { return a.x - b.x; });
+        for (let i = 0; i < sorted.length; i++) {
+            if (sorted[i].name === screen.name) {
+                return i;
+            }
         }
-
         return 0;
     }
 

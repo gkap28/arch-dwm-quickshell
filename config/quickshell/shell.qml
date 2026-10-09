@@ -463,7 +463,13 @@ ShellRoot {
             weatherModel: weatherModel
             updateModel: updateModel
             layoutModel: layoutModel
-            primaryPanel: modelData.name === "DisplayPort-2"
+            // Primaerer Panel = rechteste Monitor (x > 0). Unabhaengig vom Namen.
+            primaryPanel: {
+                const screens = Quickshell.screens;
+                if (!screens || screens.length === 0) return false;
+                const sorted = screens.slice().sort(function(a, b) { return a.x - b.x; });
+                return sorted.length > 1 && modelData.name === sorted[sorted.length - 1].name;
+            }
             onPopupRequested: panel => root.selectedPanelWindow = panel
         }
     }

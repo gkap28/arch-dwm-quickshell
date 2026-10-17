@@ -46,6 +46,95 @@ Flickable {
             }
         }
 
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: keyboardLangColumn.implicitHeight + 20
+            color: Theme.bg
+            border.color: Theme.border
+            radius: Theme.radius
+
+            ColumnLayout {
+                id: keyboardLangColumn
+                anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 10
+                spacing: Theme.tightSpacing
+
+                Text {
+                    text: "Keyboard languages (Tastatursprachen)"
+                    color: Theme.textStrong
+                    font.family: Theme.fontFamily
+                    font.bold: true
+                }
+
+                Text {
+                    Layout.fillWidth: true
+                    text: "Anklicken zum Aktivieren/Deaktivieren. Alle aktiven Sprachen rotieren per Toggle-Taste. Wird auf das erste Tastatur-Gerät angewendet."
+                    color: Theme.textMuted
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.smallFontSize
+                    wrapMode: Text.WordWrap
+                }
+
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: Theme.tightSpacing
+
+                    Repeater {
+                        model: [
+                            { "code": "us", "label": "US" },
+                            { "code": "de", "label": "DE" },
+                            { "code": "gr", "label": "GR" },
+                            { "code": "fr", "label": "FR" },
+                            { "code": "es", "label": "ES" },
+                            { "code": "it", "label": "IT" }
+                        ]
+
+                        delegate: Rectangle {
+                            id: langButton
+                            required property var modelData
+
+                            readonly property var firstKeyboard: root.settingsModel.inputDevices.find(function(d) { return d.kind === "keyboard"; })
+                            readonly property var layoutSetting: firstKeyboard ? root.settingsModel.inputSettings.find(function(s) { return s.device === firstKeyboard.key && s.id === "keyboard-layout"; }) : null
+                            readonly property var activeList: layoutSetting ? layoutSetting.value.split(",") : []
+                            readonly property bool isActive: activeList.indexOf(langButton.modelData.code) >= 0
+
+                            width: 60
+                            height: 34
+                            color: isActive ? Theme.accent : Theme.surface
+                            border.color: isActive ? Theme.accent : Theme.border
+                            radius: Theme.radius
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: langButton.modelData.label
+                                color: Theme.textStrong
+                                font.family: Theme.fontFamily
+                                font.bold: langButton.isActive
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                enabled: langButton.firstKeyboard !== undefined && !root.settingsModel.previewOperationLocked
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    if (!langButton.layoutSetting || !langButton.firstKeyboard) return;
+                                    const current = langButton.layoutSetting.value.split(",").filter(function(x) { return x.length > 0; });
+                                    const idx = current.indexOf(langButton.modelData.code);
+                                    let next;
+                                    if (idx >= 0) {
+                                        if (current.length <= 1) return;
+                                        next = current.slice(0, idx).concat(current.slice(idx + 1));
+                                    } else {
+                                        next = current.concat([langButton.modelData.code]);
+                                    }
+                                    root.settingsModel.previewInput(langButton.firstKeyboard.key, "keyboard-layout", next.join(","));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Repeater {
             model: root.settingsModel.inputDevices
             delegate: Rectangle {

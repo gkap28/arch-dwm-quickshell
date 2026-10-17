@@ -66,8 +66,10 @@ Item {
     function setLayout(index) {
         if (index < 0 || index >= root.layouts.length) return
         
-        const layout = root.layouts[index].toLowerCase()
-        const cmd = "setxkbmap -layout us,de,gr -variant ,, -option grp:alt_shift_toggle && setxkbmap -layout " + layout
+        const active = root.layouts[index].toLowerCase()
+        const others = root.layouts.filter(function(_, i) { return i !== index; }).map(function(l) { return l.toLowerCase(); })
+        const allLayouts = [active].concat(others).join(",")
+        const cmd = "setxkbmap -layout " + allLayouts + " -option grp:alt_shift_toggle"
         switchProcess.command = ["bash", "-c", cmd]
         switchProcess.running = true
         

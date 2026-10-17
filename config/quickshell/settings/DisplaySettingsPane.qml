@@ -156,14 +156,15 @@ Flickable {
                 Layout.fillWidth: true; Layout.preferredHeight: 36; color: Theme.surface; border.color: Theme.border; radius: Theme.radius
                 TextInput { anchors.fill: parent; anchors.margins: 8; text: root.profileName; color: Theme.textStrong; font.family: Theme.fontFamily; onTextChanged: root.profileName = text }
             }
-			ShellButton { label: "Save profile"; enabled: root.profileName.trim().length > 0; onActivated: root.settingsModel.saveDisplay(root.profileName.trim()) }
+			ShellButton { label: "1. Layout als Profil speichern"; enabled: root.profileName.trim().length > 0; onActivated: root.settingsModel.saveDisplay(root.profileName.trim()) }
 			ShellButton {
-				label: "Install persistent"
+				label: "2. Dauerhaft beim Start anwenden"
 				enabled: root.settingsModel.displayPersistenceAvailable && root.settingsModel.displayProfiles.indexOf(root.profileName.trim()) >= 0
 				onActivated: root.confirmation = "install"
 			}
-            ShellButton { label: "Rollback system"; danger: true; enabled: root.settingsModel.displayPersistenceAvailable; onActivated: root.confirmation = "rollback" }
+            ShellButton { label: "Xorg-Konfiguration zurücksetzen"; danger: true; enabled: root.settingsModel.displayPersistenceAvailable; onActivated: root.confirmation = "rollback" }
         }
+        Text { Layout.fillWidth: true; text: "Reihenfolge: Erst 'Layout speichern', dann 'Dauerhaft beim Start anwenden'. Nur Schritt 2 überlebt einen Reboot."; color: Theme.accent; font.family: Theme.fontFamily; font.pixelSize: Theme.tinyFontSize; wrapMode: Text.WordWrap }
 
         Text {
             Layout.fillWidth: true

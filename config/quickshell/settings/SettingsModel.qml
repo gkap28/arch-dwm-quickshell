@@ -149,6 +149,29 @@ Scope {
         root.displayMessage = valid ? outputs.length + " connected outputs" : "Unsupported display provider response";
     }
 
+    function availableModes(outputName) {
+        const result = [];
+        const seen = {};
+        for (const m of root.displayModes) {
+            if (m.output !== outputName) continue;
+            if (seen[m.mode]) continue;
+            seen[m.mode] = true;
+            result.push(m.mode);
+        }
+        return result;
+    }
+
+    function availableRates(outputName, mode) {
+        const result = [];
+        for (const m of root.displayModes) {
+            if (m.output !== outputName) continue;
+            if (m.mode !== mode) continue;
+            if (result.indexOf(m.rate) >= 0) continue;
+            result.push(m.rate);
+        }
+        return result;
+    }
+
     function parseInput(text) {
         const devices = [];
         const settings = [];

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.core
+import "."
 
 pragma ComponentBehavior: Bound
 
@@ -102,7 +103,26 @@ Flickable {
 
                     RowLayout {
                         Layout.fillWidth: true
-                        ShellButton { label: outputCard.modelData.mode + " @ " + outputCard.modelData.rate + " Hz"; enabled: outputCard.modelData.enabled; onActivated: root.settingsModel.cycleDisplayMode(outputCard.index) }
+                        ModeDropdown {
+                            options: root.settingsModel.availableModes(outputCard.modelData.name)
+                            value: outputCard.modelData.mode
+                            interactive: outputCard.modelData.enabled
+                            onSelected: function(newMode) {
+                                root.settingsModel.updateDisplay(outputCard.index, "mode", newMode);
+                                const rates = root.settingsModel.availableRates(outputCard.modelData.name, newMode);
+                                if (rates.length > 0 && rates.indexOf(outputCard.modelData.rate) < 0) {
+                                    root.settingsModel.updateDisplay(outputCard.index, "rate", rates[0]);
+                                }
+                            }
+                        }
+                        ModeDropdown {
+                            options: root.settingsModel.availableRates(outputCard.modelData.name, outputCard.modelData.mode)
+                            value: outputCard.modelData.rate + " Hz"
+                            interactive: outputCard.modelData.enabled
+                            onSelected: function(newRate) {
+                                root.settingsModel.updateDisplay(outputCard.index, "rate", newRate.replace(" Hz", ""));
+                            }
+                        }
                         ShellButton { label: "Rotation: " + outputCard.modelData.rotation; enabled: outputCard.modelData.enabled; onActivated: root.settingsModel.cycleRotation(outputCard.index) }
                         Text { text: "X"; color: Theme.textMuted; font.family: Theme.fontFamily }
                         Rectangle {

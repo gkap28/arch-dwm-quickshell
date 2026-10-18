@@ -207,7 +207,7 @@ PanelWindow {
                                 text: "󰌌"
                                 //color: Theme.accent
                                 color: Theme.textStrong
-                                font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
+                                font.pixelSize: 22
                             }
 
                             UiText {
@@ -246,7 +246,7 @@ PanelWindow {
                                 text: "󰏗"
                                 //color: root.updateModel.updateCount > 0 ? Theme.warning : Theme.success
                                 color: Theme.textStrong
-                                font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
+                                font.pixelSize: 22
                             }
 
                             UiText {
@@ -284,7 +284,7 @@ PanelWindow {
                             IconText {
                                 text: root.weatherModel.weatherIcon
                                 color: Theme.textStrong
-                                font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
+                                font.pixelSize: 22
                             }
 
                             UiText {
@@ -326,7 +326,7 @@ PanelWindow {
                             IconText {
                                 text: root.batteryIcon(root.state.batteryPercent, root.state.batteryStatus)
                                 color: Theme.textStrong
-                                font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
+                                font.pixelSize: 22
                             }
 
                             UiText {
@@ -358,7 +358,7 @@ PanelWindow {
                             IconText {
                                 text: "󰂯"
                                 color: Theme.textStrong
-                                font.pixelSize: Math.round((Theme.panelFontSize + 1) * 0.9)
+                                font.pixelSize: 22
                             }
                         }
 
@@ -389,7 +389,7 @@ PanelWindow {
                             IconText {
                                 text: root.controlsModel.volumeMuted ? "󰝟" : "󰕾"
                                 color: Theme.textStrong
-                                font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.1)
+                                font.pixelSize: 22
                             }
 
                             UiText {
@@ -431,7 +431,7 @@ PanelWindow {
                             anchors.centerIn: parent
                             text: "󰐥"
                             color: Theme.textStrong
-                            font.pixelSize: Math.round((Theme.panelFontSize + 1) * 1.08)
+                            font.pixelSize: 22
                         }
 
                         MouseArea {

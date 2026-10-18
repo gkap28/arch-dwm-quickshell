@@ -100,6 +100,167 @@ Flickable {
 
         Text {
             Layout.fillWidth: true
+            text: "Wallpaper (pro Monitor)"
+            color: Theme.textStrong
+            font.family: Theme.fontFamily
+            font.bold: true
+            font.pixelSize: Theme.bodyFontSize
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: root.settingsModel.wallpaperMessage
+            color: root.settingsModel.wallpaperState === "failure" ? Theme.danger : Theme.textMuted
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.smallFontSize
+        }
+
+        Repeater {
+            model: root.settingsModel.wallpaperMonitors
+
+            delegate: Rectangle {
+                id: monitorCard
+                required property var modelData
+
+                Layout.fillWidth: true
+                Layout.preferredHeight: monitorCol.implicitHeight + 20
+                color: Theme.bg
+                border.color: Theme.border
+                radius: Theme.radius
+
+                ColumnLayout {
+                    id: monitorCol
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: 10
+                    spacing: Theme.tightSpacing
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            Layout.fillWidth: true
+                            text: "Monitor " + (monitorCard.modelData.index + 1) + ": " + monitorCard.modelData.name
+                            color: Theme.textStrong
+                            font.family: Theme.fontFamily
+                            font.bold: true
+                        }
+                        Text {
+                            text: monitorCard.modelData.basename || "(kein Bild)"
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: Theme.smallFontSize
+                            elide: Text.ElideRight
+                            Layout.maximumWidth: 300
+                        }
+                    }
+
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: Theme.tightSpacing
+
+                        Repeater {
+                            model: root.settingsModel.wallpaperCandidates
+
+                            delegate: Rectangle {
+                                id: wpButton
+                                required property var modelData
+
+                                readonly property bool isActive: modelData.basename === monitorCard.modelData.basename
+
+                                width: Math.max(wpLabel.implicitWidth + 20, 120)
+                                height: 30
+                                color: isActive ? Theme.accent : Theme.surface
+                                border.color: isActive ? Theme.accent : Theme.border
+                                radius: Theme.radius
+
+                                Text {
+                                    id: wpLabel
+                                    anchors.centerIn: parent
+                                    text: wpButton.modelData.basename
+                                    color: Theme.textStrong
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: Theme.tinyFontSize
+                                    font.bold: wpButton.isActive
+                                    elide: Text.ElideRight
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    enabled: !wpButton.isActive
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.settingsModel.setWallpaper(monitorCard.modelData.index, wpButton.modelData.path)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.tightSpacing
+
+            Text {
+                text: "Fit-Modus:"
+                color: Theme.text
+                font.family: Theme.fontFamily
+            }
+
+            Repeater {
+                model: ["scale", "fill", "fit", "center", "tile", "max"]
+
+                delegate: Rectangle {
+                    id: fitButton
+                    required property string modelData
+
+                    readonly property bool isActive: root.settingsModel.wallpaperFit === modelData
+
+                    width: 70
+                    height: 30
+                    color: isActive ? Theme.accent : Theme.surface
+                    border.color: isActive ? Theme.accent : Theme.border
+                    radius: Theme.radius
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: fitButton.modelData
+                        color: Theme.textStrong
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.tinyFontSize
+                        font.bold: fitButton.isActive
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: !fitButton.isActive
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.settingsModel.setWallpaperFit(fitButton.modelData)
+                    }
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+
+            ShellButton {
+                label: "Zufällig"
+                onActivated: root.settingsModel.randomizeWallpaper()
+            }
+            ShellButton {
+                label: "Reset"
+                onActivated: root.settingsModel.resetWallpaper()
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: Theme.border
+        }
+
+        Text {
+            Layout.fillWidth: true
             text: "Fensterrahmen (borderpx)"
             color: Theme.textStrong
             font.family: Theme.fontFamily

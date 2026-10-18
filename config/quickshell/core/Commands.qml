@@ -148,6 +148,10 @@ Singleton {
         return helperCommand("dwm-settings-wallpaper", action, args, true);
     }
 
+    function settingsWallpaperAzoteCommand(action, args) {
+        return helperCommand("dwm-settings-wallpaper-azote", action, args, true);
+    }
+
     function settingsFontCommand(action, args) {
         return helperCommand("dwm-settings-font", action, args, true);
     }

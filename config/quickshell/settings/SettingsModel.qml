@@ -35,6 +35,11 @@ Scope {
     property string appearanceMessage: ""
     property var appearanceColors: ({})
     property bool appearanceDarkMode: true
+    property string wallpaperState: "idle"
+    property var wallpaperMonitors: []
+    property var wallpaperCandidates: []
+    property string wallpaperFit: "scale"
+    property string wallpaperMessage: ""
     property string inputMessage: ""
     property string previewKind: ""
     property string previewToken: ""
@@ -100,7 +105,7 @@ Scope {
 			if (id !== "input") inputSettleTimer.stop();
         if (id === "displays") root.refreshDisplays();
         if (id === "input") root.refreshInput();
-        if (id === "appearance") root.refreshAppearance();
+        if (id === "appearance") { root.refreshAppearance(); root.refreshWallpaper(); }
     }
 
     function parseDisplays(text) {
@@ -252,6 +257,38 @@ Scope {
         if (Object.keys(colors).length > 0) {
             Theme.applyAppearanceColors(colors, darkMode);
         }
+    }
+
+    function parseWallpaper(text) {
+        const monitors = [];
+        const candidates = [];
+        let fit = "scale";
+        let valid = false;
+        for (const line of text.trim().split("\n")) {
+            const fields = line.split("\t");
+            if (fields[0] === "wallpaper-protocol" && fields[1] === "1") {
+                valid = true;
+            } else if (fields[0] === "fit" && fields.length >= 2) {
+                fit = fields[1];
+            } else if (fields[0] === "monitor" && fields.length >= 5) {
+                monitors.push({
+                    "name": fields[1],
+                    "index": Number(fields[2]),
+                    "basename": fields[3],
+                    "path": fields[4]
+                });
+            } else if (fields[0] === "candidate" && fields.length >= 3) {
+                candidates.push({
+                    "basename": fields[1],
+                    "path": fields[2]
+                });
+            }
+        }
+        root.wallpaperMonitors = monitors;
+        root.wallpaperCandidates = candidates;
+        root.wallpaperFit = fit;
+        root.wallpaperState = valid ? "ready" : "failure";
+        root.wallpaperMessage = valid ? (monitors.length + " monitors, " + candidates.length + " wallpapers") : "Unsupported wallpaper provider response";
     }
 
     function updateDisplay(index, field, value) {
@@ -441,6 +478,36 @@ Scope {
         if (appearanceActionProcess.running) return;
         appearanceActionProcess.command = Commands.settingsAppearanceControlCommand("set-borderpx", [String(value)]);
         appearanceActionProcess.running = true;
+    }
+
+    function refreshWallpaper() {
+        if (!root.visible || wallpaperDiscoverProcess.running) return;
+        root.wallpaperState = "loading";
+        wallpaperDiscoverProcess.running = true;
+    }
+
+    function setWallpaper(index, path) {
+        if (!path || wallpaperActionProcess.running) return;
+        wallpaperActionProcess.command = Commands.settingsWallpaperAzoteCommand("set-wallpaper", [String(index), path]);
+        wallpaperActionProcess.running = true;
+    }
+
+    function setWallpaperFit(mode) {
+        if (!mode || wallpaperActionProcess.running) return;
+        wallpaperActionProcess.command = Commands.settingsWallpaperAzoteCommand("set-fit", [mode]);
+        wallpaperActionProcess.running = true;
+    }
+
+    function randomizeWallpaper() {
+        if (wallpaperActionProcess.running) return;
+        wallpaperActionProcess.command = Commands.settingsWallpaperAzoteCommand("randomize", []);
+        wallpaperActionProcess.running = true;
+    }
+
+    function resetWallpaper() {
+        if (wallpaperActionProcess.running) return;
+        wallpaperActionProcess.command = Commands.settingsWallpaperAzoteCommand("reset", []);
+        wallpaperActionProcess.running = true;
     }
 
     function setSearch(value) {
@@ -734,6 +801,37 @@ Scope {
         running: false
         stdout: StdioCollector { onStreamFinished: root.parseAppearanceSnapshot(this.text) }
         stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) console.warn("appearance snapshot:", error); } }
+    }
+
+    Process {
+        id: wallpaperDiscoverProcess
+        command: Commands.settingsWallpaperAzoteCommand("discover", [])
+        running: false
+        stdout: StdioCollector { onStreamFinished: root.parseWallpaper(this.text) }
+        stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.wallpaperState = "failure"; root.wallpaperMessage = error; } } }
+    }
+
+    Process {
+        id: wallpaperActionProcess
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = this.text.trim().split("\n");
+                for (const line of lines) {
+                    const fields = line.split("\t");
+                    if (fields[0] === "ok") {
+                        root.wallpaperMessage = fields.slice(1).join(" ");
+                    } else if (fields[0] === "error") {
+                        root.wallpaperState = "failure";
+                        root.wallpaperMessage = fields.slice(1).join(" ");
+                    }
+                }
+            }
+        }
+        stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.wallpaperState = "failure"; root.wallpaperMessage = error; } } }
+        onRunningChanged: {
+            if (!running) root.refreshWallpaper();
+        }
     }
 
     Process {

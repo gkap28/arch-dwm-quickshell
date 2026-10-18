@@ -1,0 +1,278 @@
+#!/bin/sh
+# dwm-settings-wallpaper-azote — Pro-Monitor-Wallpaper via feh / ~/.fehbg
+# Ersetzt Chris' dwm-settings-wallpaper für Multi-Monitor-Setups mit feh
+set -eu
+
+script_dir=$(
+	unset CDPATH
+	cd -- "$(dirname -- "$0")" && pwd
+)
+
+fehbg="$HOME/.fehbg"
+backgrounds_dir="$HOME/Pictures/backgrounds"
+default_wallpapers="GK.png gk-mitte.png"
+
+usage() {
+	cat >&2 <<EOF
+usage: $0 discover
+       $0 set-wallpaper INDEX PATH
+       $0 set-fit MODE
+       $0 randomize
+       $0 reset
+EOF
+}
+
+clean_field() {
+	printf '%s' "$1" | tr '\011\015\012' '   '
+}
+
+fail() {
+	printf 'error: %s\n' "$*" >&2
+	exit 1
+}
+
+require_backgrounds() {
+	[ -d "$backgrounds_dir" ] || fail "backgrounds directory not found: $backgrounds_dir"
+}
+
+# Liest aktuellen Fit-Mode aus ~/.fehbg
+current_fit() {
+	if [ ! -f "$fehbg" ]; then
+		printf 'scale\n'
+		return
+	fi
+	awk '
+		/--bg-/ {
+			for (i = 1; i <= NF; i++) {
+				if ($i ~ /^--bg-/) {
+					sub(/^--bg-/, "", $i)
+					print $i
+					exit
+				}
+			}
+		}
+	' "$fehbg"
+}
+
+# Liest aktuelle Wallpaper-Pfade aus ~/.fehbg (in Reihenfolge)
+current_wallpapers() {
+	if [ ! -f "$fehbg" ]; then
+		return
+	fi
+	awk '
+		{
+			for (i = 1; i <= NF; i++) {
+				if ($i ~ /^\x27.*\x27$/ || $i ~ /^".*"$/) {
+					path = $i
+					gsub(/^[\x27"]|[\x27"]$/, "", path)
+					if (path ~ /\//) print path
+				}
+			}
+		}
+	' "$fehbg"
+}
+
+# Schreibt ~/.fehbg mit gegebenem Fit-Mode und Wallpaper-Pfaden
+write_fehbg() {
+	fit=$1
+	shift
+	tmp=$(mktemp)
+	{
+		printf '#!/bin/sh\n'
+		printf 'feh --no-fehbg --bg-%s' "$fit"
+		for path in "$@"; do
+			printf " '%s'" "$path"
+		done
+		printf '\n'
+	} >"$tmp"
+	chmod +x "$tmp"
+	mv "$tmp" "$fehbg"
+}
+
+# Führt ~/.fehbg aus (setzt Wallpaper live)
+apply_fehbg() {
+	[ -x "$fehbg" ] && "$fehbg" >/dev/null 2>&1 || true
+}
+
+list_monitors() {
+	xrandr --listmonitors 2>/dev/null | awk 'NR > 1 {
+		name = $NF
+		print name
+	}'
+}
+
+# Stellt sicher, dass die Anzahl Wallpaper-Pfade zu Monitoren passt
+# Füllt mit Default-Bildern auf oder kürzt
+normalize_wallpapers() {
+	monitor_count=$(list_monitors | wc -l)
+	[ "$monitor_count" -eq 0 ] && monitor_count=1
+
+	result=""
+	i=0
+	for path in "$@"; do
+		[ "$i" -ge "$monitor_count" ] && break
+		result="$result $path"
+		i=$((i + 1))
+	done
+
+	# Auffüllen mit Defaults, falls zu wenige
+	while [ "$i" -lt "$monitor_count" ]; do
+		default_name=$(printf '%s' "$default_wallpapers" | awk -v n=$((i + 1)) '{print $n}')
+		[ -z "$default_name" ] && default_name="GK.png"
+		default_path="$backgrounds_dir/$default_name"
+		result="$result $default_path"
+		i=$((i + 1))
+	done
+
+	printf '%s\n' "$result" | sed 's/^ //'
+}
+
+cmd_discover() {
+	require_backgrounds
+	fit=$(current_fit)
+	[ -z "$fit" ] && fit="scale"
+
+	printf 'wallpaper-protocol\t1\n'
+	printf 'fit\t%s\n' "$fit"
+
+	# Aktuelle Wallpaper pro Monitor
+	idx=0
+	present=$(current_wallpapers)
+	list_monitors | while IFS= read -r monitor; do
+		[ -z "$monitor" ] && continue
+		path=$(printf '%s\n' "$present" | sed -n "$((idx + 1))p")
+		basename=$(basename -- "$path" 2>/dev/null || printf '')
+		printf 'monitor\t%s\t%s\t%s\t%s\n' \
+			"$(clean_field "$monitor")" "$idx" \
+			"$(clean_field "$basename")" "$(clean_field "$path")"
+		idx=$((idx + 1))
+	done
+
+	# Alle verfügbaren Wallpaper
+	for path in "$backgrounds_dir"/*; do
+		[ -f "$path" ] || continue
+		basename=$(basename -- "$path")
+		printf 'candidate\t%s\t%s\n' "$(clean_field "$basename")" "$(clean_field "$path")"
+	done
+}
+
+cmd_set_wallpaper() {
+	index=$1
+	new_path=$2
+
+	case "$index" in
+	''|*[!0-9]*) fail "invalid index: $index" ;;
+	esac
+
+	[ -f "$new_path" ] || fail "wallpaper file not found: $new_path"
+
+	fit=$(current_fit)
+	[ -z "$fit" ] && fit="scale"
+
+	# Aktuelle Pfade holen und an Position index tauschen
+	current=$(current_wallpapers)
+	set -- $current
+
+	new_list=""
+	i=0
+	while [ "$i" -lt "$(list_monitors | wc -l)" ]; do
+		if [ "$i" -eq "$index" ]; then
+			eval "path=\"\${$((i + 1)):-}\""
+			new_list="$new_list $new_path"
+		else
+			eval "path=\"\${$((i + 1)):-}\""
+			if [ -z "$path" ]; then
+				# Fallback auf Default
+				default_name=$(printf '%s' "$default_wallpapers" | awk -v n=$((i + 1)) '{print $n}')
+				[ -z "$default_name" ] && default_name="GK.png"
+				path="$backgrounds_dir/$default_name"
+			fi
+			new_list="$new_list $path"
+		fi
+		i=$((i + 1))
+	done
+
+	# Neue Liste schreiben
+	write_fehbg "$fit" $new_list
+	apply_fehbg
+
+	printf 'ok\twallpaper\t%s\t%s\n' "$index" "$(clean_field "$(basename -- "$new_path")")"
+}
+
+cmd_set_fit() {
+	mode=$1
+
+	case "$mode" in
+	scale|fill|fit|center|tile|max|stretch) ;;
+	*) fail "invalid fit mode: $mode (allowed: scale fill fit center tile max stretch)" ;;
+	esac
+
+	current=$(current_wallpapers)
+	write_fehbg "$mode" $current
+	apply_fehbg
+
+	printf 'ok\tfit\t%s\n' "$mode"
+}
+
+cmd_randomize() {
+	require_backgrounds
+	count=$(list_monitors | wc -l)
+	[ "$count" -eq 0 ] && count=1
+
+	fit=$(current_fit)
+	[ -z "$fit" ] && fit="scale"
+
+	all_files=$(find "$backgrounds_dir" -maxdepth 1 -type f | shuf | head -n "$count")
+
+	write_fehbg "$fit" $all_files
+	apply_fehbg
+
+	printf 'ok\trandomized\t%s\n' "$count"
+}
+
+cmd_reset() {
+	fit=$(current_fit)
+	[ -z "$fit" ] && fit="scale"
+
+	reset_paths=""
+	for name in $default_wallpapers; do
+		path="$backgrounds_dir/$name"
+		[ -f "$path" ] && reset_paths="$reset_paths $path"
+	done
+
+	[ -z "$reset_paths" ] && fail "no default wallpapers found in $backgrounds_dir"
+
+	write_fehbg "$fit" $reset_paths
+	apply_fehbg
+
+	printf 'ok\treset\n'
+}
+
+[ $# -ge 1 ] || {
+	usage
+	exit 2
+}
+
+action=$1
+shift
+
+case "$action" in
+discover) cmd_discover ;;
+set-wallpaper)
+	[ $# -eq 2 ] || fail "set-wallpaper requires INDEX and PATH"
+	cmd_set_wallpaper "$1" "$2"
+	;;
+set-fit)
+	[ $# -eq 1 ] || fail "set-fit requires MODE"
+	cmd_set_fit "$1"
+	;;
+randomize) cmd_randomize ;;
+reset) cmd_reset ;;
+-h|--help|help)
+	usage
+	;;
+*)
+	usage
+	exit 2
+	;;
+esac

@@ -47,9 +47,13 @@ INSTALL_COMMANDS = \
 	scripts/dwm-titus-release \
 	scripts/dwm-screenshot \
 	scripts/dwm-settings \
+	scripts/dwm-settings-appearance \
+	scripts/dwm-settings-appearance-control \
 	scripts/dwm-settings-display \
 	scripts/dwm-settings-input \
 	scripts/dwm-settings-provider \
+	scripts/dwm-settings-wallpaper \
+	scripts/dwm-settings-wallpaper-azote \
 	scripts/dwm-terminal \
 	scripts/dwm-utils.sh \
 	scripts/install-gearlever \

@@ -13,8 +13,9 @@ FloatingWindow {
     title: "dwm settings"
     visible: settingsModel.visible
     screen: settingsModel.targetScreen
-    implicitWidth: 980
-    implicitHeight: 620
+    fullscreen: true
+    implicitWidth: root.screen ? root.screen.width : 1180
+    implicitHeight: root.screen ? root.screen.height : 760
     color: Theme.bg
 
     function statusColor(status) {
@@ -275,6 +276,13 @@ FloatingWindow {
                             settingsModel: root.settingsModel
                         }
 
+                        AppearanceSettingsPane {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            visible: root.settingsModel.selectedSectionId === "appearance"
+                            settingsModel: root.settingsModel
+                        }
+
                         ListView {
                             id: capabilityList
 
@@ -282,6 +290,7 @@ FloatingWindow {
                             Layout.fillHeight: true
                             visible: root.settingsModel.selectedSectionId !== "displays"
                                 && root.settingsModel.selectedSectionId !== "input"
+                                && root.settingsModel.selectedSectionId !== "appearance"
                             clip: true
                             spacing: Theme.listSpacing * 2
                             model: root.settingsModel.capabilitiesForSection(root.settingsModel.selectedSectionId)

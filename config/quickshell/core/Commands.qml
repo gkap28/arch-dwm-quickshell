@@ -140,6 +140,10 @@ Singleton {
         return helperCommand("dwm-settings-appearance", action, args, true);
     }
 
+    function settingsAppearanceControlCommand(action, args) {
+        return helperCommand("dwm-settings-appearance-control", action, args, true);
+    }
+
     function settingsWallpaperCommand(action, args) {
         return helperCommand("dwm-settings-wallpaper", action, args, true);
     }

@@ -28,6 +28,13 @@ Scope {
     property var inputSettings: []
     property var inputUnsupported: []
     property string inputState: "idle"
+    property string appearanceState: "idle"
+    property var appearanceThemes: []
+    property string appearanceActive: ""
+    property int appearanceBorderpx: 1
+    property string appearanceMessage: ""
+    property var appearanceColors: ({})
+    property bool appearanceDarkMode: true
     property string inputMessage: ""
     property string previewKind: ""
     property string previewToken: ""
@@ -93,6 +100,7 @@ Scope {
 			if (id !== "input") inputSettleTimer.stop();
         if (id === "displays") root.refreshDisplays();
         if (id === "input") root.refreshInput();
+        if (id === "appearance") root.refreshAppearance();
     }
 
     function parseDisplays(text) {
@@ -198,6 +206,52 @@ Scope {
         root.inputUnsupported = unsupported;
         root.inputState = valid ? "ready" : "failure";
         root.inputMessage = valid ? devices.length + " input devices" : "Unsupported input provider response";
+    }
+
+    function parseAppearance(text) {
+        const themes = [];
+        let active = "";
+        let borderpx = 1;
+        let valid = false;
+        for (const line of text.trim().split("\n")) {
+            const fields = line.split("\t");
+            if (fields[0] === "appearance-protocol" && fields[1] === "1") {
+                valid = true;
+            } else if (fields[0] === "active" && fields.length >= 2) {
+                active = fields[1];
+            } else if (fields[0] === "borderpx" && fields.length >= 2) {
+                borderpx = Number(fields[1]) || 1;
+            } else if (fields[0] === "theme" && fields.length >= 3) {
+                themes.push({ "name": fields[1], "active": fields[2] === "1" });
+            }
+        }
+        root.appearanceThemes = themes;
+        root.appearanceActive = active;
+        root.appearanceBorderpx = borderpx;
+        root.appearanceState = valid ? "ready" : "failure";
+        root.appearanceMessage = valid ? themes.length + " themes" : "Unsupported appearance provider response";
+    }
+
+    function parseAppearanceSnapshot(text) {
+        const colors = {};
+        let darkMode = true;
+        for (const line of text.trim().split("\n")) {
+            const fields = line.split("\t");
+            if (fields[0] === "color" && fields.length >= 3) {
+                colors[fields[1]] = fields[2];
+            } else if (fields[0] === "theme" && fields.length >= 4) {
+                if (fields[1] === fields[0]) continue; // skip malformed
+                // theme name status valid dark ...
+                if (fields[2] === "selected" && fields.length >= 5) {
+                    darkMode = fields[4] === "true";
+                }
+            }
+        }
+        root.appearanceColors = colors;
+        root.appearanceDarkMode = darkMode;
+        if (Object.keys(colors).length > 0) {
+            Theme.applyAppearanceColors(colors, darkMode);
+        }
     }
 
     function updateDisplay(index, field, value) {
@@ -368,6 +422,25 @@ Scope {
         if (!root.visible || inputDiscoverProcess.running) return;
         root.inputState = "loading";
         inputDiscoverProcess.running = true;
+    }
+
+    function refreshAppearance() {
+        if (!root.visible || appearanceDiscoverProcess.running) return;
+        root.appearanceState = "loading";
+        appearanceDiscoverProcess.running = true;
+        if (!appearanceSnapshotProcess.running) appearanceSnapshotProcess.running = true;
+    }
+
+    function setTheme(name) {
+        if (!name || appearanceActionProcess.running) return;
+        appearanceActionProcess.command = Commands.settingsAppearanceControlCommand("set-theme", [name]);
+        appearanceActionProcess.running = true;
+    }
+
+    function setBorderpx(value) {
+        if (appearanceActionProcess.running) return;
+        appearanceActionProcess.command = Commands.settingsAppearanceControlCommand("set-borderpx", [String(value)]);
+        appearanceActionProcess.running = true;
     }
 
     function setSearch(value) {
@@ -652,6 +725,48 @@ Scope {
 				root.closeRollbackPending = false;
 				root.revertPreview();
 			}
+        }
+    }
+
+    Process {
+        id: appearanceSnapshotProcess
+        command: Commands.settingsAppearanceCommand("snapshot")
+        running: false
+        stdout: StdioCollector { onStreamFinished: root.parseAppearanceSnapshot(this.text) }
+        stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) console.warn("appearance snapshot:", error); } }
+    }
+
+    Process {
+        id: appearanceDiscoverProcess
+        command: Commands.settingsAppearanceControlCommand("discover")
+        running: false
+        stdout: StdioCollector { onStreamFinished: root.parseAppearance(this.text) }
+        stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.appearanceState = "failure"; root.appearanceMessage = error; } } }
+    }
+
+    Process {
+        id: appearanceActionProcess
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = this.text.trim().split("\n");
+                for (const line of lines) {
+                    const fields = line.split("\t");
+                    if (fields[0] === "ok") {
+                        root.appearanceMessage = fields[1] + ": " + fields[2];
+                    } else if (fields[0] === "error") {
+                        root.appearanceState = "failure";
+                        root.appearanceMessage = fields.slice(1).join(" ");
+                    }
+                }
+            }
+        }
+        stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.appearanceState = "failure"; root.appearanceMessage = error; } } }
+        onRunningChanged: {
+            if (!running) {
+                root.refreshAppearance();
+                appearanceSnapshotProcess.running = true;
+            }
         }
     }
 

@@ -1,0 +1,107 @@
+#!/bin/sh
+# dwm-settings-icons — GTK Icon-Theme-Verwaltung
+set -eu
+
+usage() {
+	cat >&2 <<EOF
+usage: $0 list
+       $0 get
+       $0 set NAME
+EOF
+}
+
+clean_field() {
+	printf '%s\n' "$1" | tr '\011\015\012' '   '
+}
+
+fail() {
+	printf 'error: %s\n' "$*" >&2
+	exit 1
+}
+
+# Icon-Themes aus /usr/share/icons/ und ~/.local/share/icons/ listen
+# Filtert Cursor-Themes und System-Fallbacks raus
+list_themes() {
+	seen=""
+	for dir in /usr/share/icons "$HOME/.local/share/icons" "$HOME/.icons"; do
+		[ -d "$dir" ] || continue
+		for entry in "$dir"/*; do
+			[ -d "$entry" ] || continue
+			name=$(basename "$entry")
+			case "$name" in
+				default|hicolor|locolor) continue ;;
+				*-Cursors|*-cursors) continue ;;
+			esac
+			# Prüfen ob's ein Icon-Theme ist (hat index.theme)
+			[ -f "$entry/index.theme" ] || continue
+			case " $seen " in
+				*" $name "*) continue ;;
+			esac
+			seen="$seen $name"
+			clean_field "$name"
+		done
+	done
+}
+
+get_current() {
+	if command -v gsettings >/dev/null 2>&1; then
+		gsettings get org.gnome.desktop.interface icon-theme 2>/dev/null | tr -d "'"
+	else
+		printf 'Adwaita\n'
+	fi
+}
+
+set_theme() {
+	name=$1
+	[ -n "$name" ] || fail "set requires theme name"
+	if command -v gsettings >/dev/null 2>&1; then
+		gsettings set org.gnome.desktop.interface icon-theme "$name" 2>/dev/null
+		printf 'ok\ticon-theme\t%s\n' "$(clean_field "$name")"
+	else
+		fail "gsettings not available"
+	fi
+}
+
+[ $# -ge 1 ] || { usage; exit 2; }
+
+action=$1
+shift
+
+case "$action" in
+list)
+	current=$(get_current)
+	printf 'icons-protocol\t1\n'
+	printf 'current\t%s\n' "$(clean_field "$current")"
+	for dir in /usr/share/icons "$HOME/.local/share/icons" "$HOME/.icons"; do
+		[ -d "$dir" ] || continue
+		for entry in "$dir"/*; do
+			[ -d "$entry" ] || continue
+			name=$(basename "$entry")
+			case "$name" in
+				default|hicolor|locolor) continue ;;
+				*Cursors*|*cursors*) continue ;;
+			esac
+			[ -f "$entry/index.theme" ] || continue
+			if [ "$name" = "$current" ]; then
+				printf 'theme\t%s\t1\n' "$name"
+			else
+				printf 'theme\t%s\t0\n' "$name"
+			fi
+		done
+	done
+	;;
+get)
+	printf 'current\t%s\n' "$(clean_field "$(get_current)")"
+	;;
+set)
+	[ $# -eq 1 ] || fail "set requires exactly 1 argument"
+	set_theme "$1"
+	;;
+-h|--help|help)
+	usage
+	;;
+*)
+	usage
+	exit 2
+	;;
+esac

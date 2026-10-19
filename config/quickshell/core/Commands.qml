@@ -156,6 +156,10 @@ Singleton {
         return helperCommand("dwm-settings-font", action, args, true);
     }
 
+    function settingsIconsCommand(action, args) {
+        return helperCommand("dwm-settings-icons", action, args, true);
+    }
+
     function settingsPersonalizationCommand(action, args) {
         return helperCommand("dwm-settings-personalization", action, args, true);
     }

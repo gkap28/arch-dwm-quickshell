@@ -50,6 +50,10 @@ Scope {
     property string fontPreviewToken: ""
     property int fontPreviewRemaining: 0
     property bool fontMutationReady: false
+    property string iconsState: "idle"
+    property string iconsCurrent: ""
+    property var iconsThemes: []
+    property string iconsMessage: ""
     property string inputMessage: ""
     property string previewKind: ""
     property string previewToken: ""
@@ -115,7 +119,7 @@ Scope {
 			if (id !== "input") inputSettleTimer.stop();
         if (id === "displays") root.refreshDisplays();
         if (id === "input") root.refreshInput();
-        if (id === "appearance") { root.refreshAppearance(); root.refreshWallpaper(); root.refreshFont(); }
+        if (id === "appearance") { root.refreshAppearance(); root.refreshWallpaper(); root.refreshFont(); root.refreshIcons(); }
     }
 
     function parseDisplays(text) {
@@ -352,6 +356,26 @@ Scope {
             }
         }
         root.fontCandidates = candidates;
+    }
+
+    function parseIcons(text) {
+        const themes = [];
+        let current = "";
+        let valid = false;
+        for (const line of text.trim().split("\n")) {
+            const fields = line.split("\t");
+            if (fields[0] === "icons-protocol" && fields[1] === "1") {
+                valid = true;
+            } else if (fields[0] === "current" && fields.length >= 2) {
+                current = fields[1];
+            } else if (fields[0] === "theme" && fields.length >= 3) {
+                themes.push({ "name": fields[1], "active": fields[2] === "1" });
+            }
+        }
+        root.iconsThemes = themes;
+        root.iconsCurrent = current;
+        root.iconsState = valid ? "ready" : "failure";
+        root.iconsMessage = valid ? themes.length + " Icon-Themes" : "Unsupported icons provider response";
     }
 
     function updateDisplay(index, field, value) {
@@ -591,6 +615,19 @@ Scope {
         if (fontActionProcess.running) return;
         fontActionProcess.command = Commands.settingsFontCommand("reset", []);
         fontActionProcess.running = true;
+    }
+
+    function refreshIcons() {
+        if (!root.visible || iconsProcess.running) return;
+        root.iconsState = "loading";
+        iconsProcess.command = Commands.settingsIconsCommand("list", []);
+        iconsProcess.running = true;
+    }
+
+    function setIconTheme(name) {
+        if (!name || iconsActionProcess.running) return;
+        iconsActionProcess.command = Commands.settingsPersonalizationCommand("apply", ["icon", name]);
+        iconsActionProcess.running = true;
     }
 
     function setSearch(value) {
@@ -993,6 +1030,36 @@ Scope {
         stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.fontState = "failure"; root.fontMessage = error; } } }
         onRunningChanged: {
             if (!running) root.refreshFont();
+        }
+    }
+
+    Process {
+        id: iconsProcess
+        running: false
+        stdout: StdioCollector { onStreamFinished: root.parseIcons(this.text) }
+        stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.iconsState = "failure"; root.iconsMessage = error; } } }
+    }
+
+    Process {
+        id: iconsActionProcess
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = this.text.trim().split("\n");
+                for (const line of lines) {
+                    const fields = line.split("\t");
+                    if (fields[0] === "ok") {
+                        root.iconsMessage = fields.slice(1).join(" ");
+                    } else if (fields[0] === "error") {
+                        root.iconsState = "failure";
+                        root.iconsMessage = fields.slice(1).join(" ");
+                    }
+                }
+            }
+        }
+        stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.iconsState = "failure"; root.iconsMessage = error; } } }
+        onRunningChanged: {
+            if (!running) root.refreshIcons();
         }
     }
 

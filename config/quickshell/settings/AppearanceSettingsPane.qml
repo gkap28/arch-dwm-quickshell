@@ -13,6 +13,7 @@ Flickable {
     clip: true
 
     property string selectedFont: ""
+    property string selectedIcon: ""
 
     ColumnLayout {
         id: contentColumn
@@ -399,6 +400,82 @@ Flickable {
             ShellButton {
                 label: "Refresh"
                 onActivated: root.settingsModel.refreshFont()
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: Theme.border
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: "Icon-Theme (GTK)"
+            color: Theme.textStrong
+            font.family: Theme.fontFamily
+            font.bold: true
+            font.pixelSize: Theme.bodyFontSize
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: "Aktuell: " + (root.settingsModel.iconsCurrent || "(unbekannt)") + " / " + root.settingsModel.iconsMessage
+            color: Theme.textMuted
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.smallFontSize
+        }
+
+        Flow {
+            Layout.fillWidth: true
+            spacing: Theme.tightSpacing
+
+            Repeater {
+                model: root.settingsModel.iconsThemes
+
+                delegate: Rectangle {
+                    id: iconButton
+                    required property var modelData
+
+                    readonly property bool isActive: modelData.active
+                    readonly property bool isSelected: modelData.name === root.selectedIcon
+
+                    width: Math.max(iconLabel.implicitWidth + 24, 140)
+                    height: 34
+                    color: isActive ? Theme.accent : (isSelected ? Theme.surfaceHover : Theme.surface)
+                    border.color: isActive ? Theme.accent : (isSelected ? Theme.accentSecondary : Theme.border)
+                    border.width: isSelected ? 2 : 1
+                    radius: Theme.radius
+
+                    Text {
+                        id: iconLabel
+                        anchors.centerIn: parent
+                        text: iconButton.modelData.name
+                        color: Theme.textStrong
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.smallFontSize
+                        font.bold: iconButton.isActive
+                        elide: Text.ElideRight
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: !iconButton.isActive
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            root.selectedIcon = iconButton.modelData.name;
+                            root.settingsModel.setIconTheme(iconButton.modelData.name);
+                        }
+                    }
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            ShellButton {
+                label: "Refresh"
+                onActivated: root.settingsModel.refreshIcons()
             }
         }
 

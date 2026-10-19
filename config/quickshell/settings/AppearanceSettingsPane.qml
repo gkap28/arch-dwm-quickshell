@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls as Controls
 import qs.core
 
 pragma ComponentBehavior: Bound
@@ -476,6 +477,139 @@ Flickable {
             ShellButton {
                 label: "Refresh"
                 onActivated: root.settingsModel.refreshIcons()
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: Theme.border
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: "Compositor (Picom)"
+            color: Theme.textStrong
+            font.family: Theme.fontFamily
+            font.bold: true
+            font.pixelSize: Theme.bodyFontSize
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: "Status: " + (root.settingsModel.picomRunning ? "läuft" : "gestoppt")
+                + " / Backend: " + (root.settingsModel.picomEffectiveBackend || "—")
+                + " / " + (root.settingsModel.picomMessage || "")
+            color: root.settingsModel.picomRunning ? Theme.success : Theme.warning
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.smallFontSize
+            wrapMode: Text.WordWrap
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 4
+
+            Text {
+                text: "Opacity aktiv: " + Math.round(activeSlider.value) + "%"
+                color: Theme.text
+                font.family: Theme.fontFamily
+                font.bold: true
+            }
+
+            Controls.Slider {
+                id: activeSlider
+                Layout.fillWidth: true
+                from: 50
+                to: 100
+                stepSize: 1
+                value: root.settingsModel.picomActive
+                onMoved: root.settingsModel.setPicomOpacity(value, root.settingsModel.picomInactive)
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 4
+
+            Text {
+                text: "Opacity inaktiv: " + Math.round(inactiveSlider.value) + "%"
+                color: Theme.text
+                font.family: Theme.fontFamily
+                font.bold: true
+            }
+
+            Controls.Slider {
+                id: inactiveSlider
+                Layout.fillWidth: true
+                from: 50
+                to: 100
+                stepSize: 1
+                value: root.settingsModel.picomInactive
+                onMoved: root.settingsModel.setPicomOpacity(root.settingsModel.picomActive, value)
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.tightSpacing
+
+            Text {
+                text: "Backend:"
+                color: Theme.text
+                font.family: Theme.fontFamily
+                Layout.preferredWidth: 120
+            }
+
+            Repeater {
+                model: ["auto", "glx", "xrender"]
+
+                delegate: Rectangle {
+                    id: backendButton
+                    required property string modelData
+
+                    readonly property bool isActive: root.settingsModel.picomBackend === backendButton.modelData
+
+                    width: 80
+                    height: 30
+                    color: isActive ? Theme.accent : Theme.surface
+                    border.color: isActive ? Theme.accent : Theme.border
+                    radius: Theme.radius
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: backendButton.modelData
+                        color: Theme.textStrong
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.smallFontSize
+                        font.bold: backendButton.isActive
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: !backendButton.isActive
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.settingsModel.setPicomBackend(backendButton.modelData)
+                    }
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.tightSpacing
+
+            ShellButton {
+                label: root.settingsModel.picomRunning ? "Picom stoppen" : "Picom starten"
+                onActivated: root.settingsModel.togglePicom()
+            }
+            ShellButton {
+                label: "Restart"
+                onActivated: root.settingsModel.restartPicom()
+            }
+            ShellButton {
+                label: "Refresh"
+                onActivated: root.settingsModel.refreshPicom()
             }
         }
 

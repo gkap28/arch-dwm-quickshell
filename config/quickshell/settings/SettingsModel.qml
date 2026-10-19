@@ -54,6 +54,16 @@ Scope {
     property string iconsCurrent: ""
     property var iconsThemes: []
     property string iconsMessage: ""
+    property string picomState: "idle"
+    property bool picomInstalled: false
+    property bool picomEditable: false
+    property bool picomRunning: false
+    property real picomActive: 100.0
+    property real picomInactive: 97.0
+    property string picomBackend: "auto"
+    property string picomEffectiveBackend: ""
+    property string picomMessage: ""
+    property string picomRevision: ""
     property string inputMessage: ""
     property string previewKind: ""
     property string previewToken: ""
@@ -119,7 +129,7 @@ Scope {
 			if (id !== "input") inputSettleTimer.stop();
         if (id === "displays") root.refreshDisplays();
         if (id === "input") root.refreshInput();
-        if (id === "appearance") { root.refreshAppearance(); root.refreshWallpaper(); root.refreshFont(); root.refreshIcons(); }
+        if (id === "appearance") { root.refreshAppearance(); root.refreshWallpaper(); root.refreshFont(); root.refreshIcons(); root.refreshPicom(); }
     }
 
     function parseDisplays(text) {
@@ -378,6 +388,25 @@ Scope {
         root.iconsMessage = valid ? themes.length + " Icon-Themes" : "Unsupported icons provider response";
     }
 
+    function parsePicom(text) {
+        try {
+            const data = JSON.parse(text.trim());
+            root.picomInstalled = data.installed === true;
+            root.picomEditable = data.editable === true;
+            root.picomRunning = data.running === true;
+            root.picomActive = Number(data.active) || 100.0;
+            root.picomInactive = Number(data.inactive) || 97.0;
+            root.picomBackend = data.policy || "auto";
+            root.picomEffectiveBackend = data.effective || "";
+            root.picomMessage = data.message || data.detail || "";
+            root.picomRevision = data.revision || "";
+            root.picomState = "ready";
+        } catch (e) {
+            root.picomState = "failure";
+            root.picomMessage = "Picom-Status konnte nicht gelesen werden: " + e;
+        }
+    }
+
     function updateDisplay(index, field, value) {
         const outputs = root.displayOutputs.slice();
         const changed = Object.assign({}, outputs[index]);
@@ -628,6 +657,38 @@ Scope {
         if (!name || iconsActionProcess.running) return;
         iconsActionProcess.command = Commands.settingsPersonalizationCommand("apply", ["icon", name]);
         iconsActionProcess.running = true;
+    }
+
+    function refreshPicom() {
+        if (!root.visible || picomStatusProcess.running) return;
+        root.picomState = "loading";
+        picomStatusProcess.running = true;
+    }
+
+    function setPicomOpacity(active, inactive) {
+        if (picomActionProcess.running) return;
+        picomActionProcess.command = Commands.helperCommand("dwm-settings-picom", "set-opacity",
+            [String(Math.round(active)), String(Math.round(inactive)), root.picomRevision], true);
+        picomActionProcess.running = true;
+    }
+
+    function setPicomBackend(backend) {
+        if (!backend || picomActionProcess.running) return;
+        picomActionProcess.command = Commands.helperCommand("dwm-settings-picom", "set-backend",
+            [backend], true);
+        picomActionProcess.running = true;
+    }
+
+    function togglePicom() {
+        if (picomActionProcess.running) return;
+        picomActionProcess.command = Commands.helperCommand("dwm-settings-picom", "toggle", [], true);
+        picomActionProcess.running = true;
+    }
+
+    function restartPicom() {
+        if (picomActionProcess.running) return;
+        picomActionProcess.command = Commands.helperCommand("dwm-settings-picom", "restart", [], true);
+        picomActionProcess.running = true;
     }
 
     function setSearch(value) {
@@ -1060,6 +1121,31 @@ Scope {
         stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.iconsState = "failure"; root.iconsMessage = error; } } }
         onRunningChanged: {
             if (!running) root.refreshIcons();
+        }
+    }
+
+    Process {
+        id: picomStatusProcess
+        command: Commands.helperCommand("dwm-settings-picom", "status", [], true)
+        running: false
+        stdout: StdioCollector { onStreamFinished: root.parsePicom(this.text) }
+        stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.picomState = "failure"; root.picomMessage = error; } } }
+    }
+
+    Process {
+        id: picomActionProcess
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const text = this.text.trim();
+                if (text.length > 0) {
+                    root.picomMessage = text.split("\n").slice(-1)[0] || "OK";
+                }
+            }
+        }
+        stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.picomState = "failure"; root.picomMessage = error; } } }
+        onRunningChanged: {
+            if (!running) root.refreshPicom();
         }
     }
 

@@ -918,15 +918,47 @@ Scope {
     }
 
     function refreshFontCandidates() {
-        const allowed = /^(MesloLGS Nerd Font Mono|MesloLGM Nerd Font Mono|Noto Color Emoji|JetBrains Mono Nerd Font|FiraCode Nerd Font|Hack Nerd Font|CascadiaCode Nerd Font|Iosevka Nerd Font)$/;
+        const wanted = [
+            "MesloLGS Nerd Font Mono",
+            "MesloLGM Nerd Font Mono",
+            "FantasqueSansM Nerd Font Mono",
+            "FiraCode Nerd Font Mono",
+            "Iosevka Nerd Font Mono",
+            "JetBrainsMono Nerd Font Mono",
+            "JetBrainsMono Nerd Font",
+            "Hack Nerd Font Mono",
+            "Hack Nerd Font",
+            "CascadiaCode Nerd Font Mono",
+            "CascadiaCode Nerd Font",
+            "Mononoki Nerd Font Mono",
+            "Mononoki Nerd Font",
+            "SourceCodePro Nerd Font Mono",
+            "SourceCodePro Nerd Font",
+            "Inconsolata Nerd Font Mono",
+            "Inconsolata Nerd Font",
+            "Ubuntu Nerd Font Mono",
+            "Ubuntu Nerd Font",
+            "RobotoMono Nerd Font Mono",
+            "RobotoMono Nerd Font",
+            "Noto Sans",
+            "Noto Sans Mono",
+            "Noto Color Emoji",
+            "DejaVu Sans",
+            "DejaVu Sans Mono",
+            "Liberation Sans",
+            "Liberation Mono",
+            "Cantarell",
+            "Open Sans"
+        ];
         const result = [];
-        for (const family of Qt.fontFamilies()) {
-            if (allowed.test(family)) {
+        const available = Qt.fontFamilies();
+        for (const name of wanted) {
+            if (available.indexOf(name) >= 0) {
                 result.push({
                     "id": "font",
                     "state": "available",
-                    "family": family,
-                    "name": family
+                    "family": name,
+                    "name": name
                 });
             }
         }

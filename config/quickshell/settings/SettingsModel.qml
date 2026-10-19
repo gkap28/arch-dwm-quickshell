@@ -40,6 +40,16 @@ Scope {
     property var wallpaperCandidates: []
     property string wallpaperFit: "scale"
     property string wallpaperMessage: ""
+    property string fontState: "idle"
+    property string fontFamily: ""
+    property real fontScale: 1.0
+    property string fontDetail: ""
+    property string fontMessage: ""
+    property var fontCandidates: []
+    property string fontPreviewState: "none"
+    property string fontPreviewToken: ""
+    property int fontPreviewRemaining: 0
+    property bool fontMutationReady: false
     property string inputMessage: ""
     property string previewKind: ""
     property string previewToken: ""
@@ -105,7 +115,7 @@ Scope {
 			if (id !== "input") inputSettleTimer.stop();
         if (id === "displays") root.refreshDisplays();
         if (id === "input") root.refreshInput();
-        if (id === "appearance") { root.refreshAppearance(); root.refreshWallpaper(); }
+        if (id === "appearance") { root.refreshAppearance(); root.refreshWallpaper(); root.refreshFont(); }
     }
 
     function parseDisplays(text) {
@@ -289,6 +299,59 @@ Scope {
         root.wallpaperFit = fit;
         root.wallpaperState = valid ? "ready" : "failure";
         root.wallpaperMessage = valid ? (monitors.length + " monitors, " + candidates.length + " wallpapers") : "Unsupported wallpaper provider response";
+    }
+
+    function parseFont(text) {
+        let family = "";
+        let scale = 1.0;
+        let detail = "";
+        let previewState = "none";
+        let previewToken = "";
+        let previewRemaining = 0;
+        let mutationReady = false;
+        for (const line of text.trim().split("\n")) {
+            const fields = line.split("\t");
+            if (fields[0] === "appearance-font-action-protocol" && fields[1] === "1") {
+                // protocol ok
+            } else if (fields[0] === "selection" && fields.length >= 5) {
+                family = fields[2];
+                scale = parseFloat(fields[3]) || 1.0;
+                detail = fields[4] || "";
+            } else if (fields[0] === "preview" && fields.length >= 7) {
+                previewState = fields[1];
+                previewToken = fields[2];
+                previewRemaining = Number(fields[5]) || 0;
+            }
+        }
+        root.fontFamily = family;
+        root.fontScale = scale;
+        root.fontDetail = detail;
+        root.fontPreviewState = previewState;
+        root.fontPreviewToken = previewToken;
+        root.fontPreviewRemaining = previewRemaining;
+        root.fontState = "ready";
+        root.fontMessage = family + " / " + Math.round(scale * 100) + "%";
+        if (family.length > 0) {
+            Theme.applyFontPreferences(family, scale);
+        }
+    }
+
+    function parseFontInventory(text) {
+        const candidates = [];
+        const allowed = /^(MesloLGS Nerd Font Mono|MesloLGM Nerd Font Mono|Noto Color Emoji)$/;
+        for (const line of text.trim().split("\n")) {
+            const fields = line.split("\t");
+            if (fields[0] === "candidate" && fields[1] === "font" && fields.length >= 4) {
+                if (!allowed.test(fields[3])) continue;
+                candidates.push({
+                    "id": fields[1],
+                    "state": fields[2],
+                    "family": fields[3],
+                    "name": fields[4] || fields[3]
+                });
+            }
+        }
+        root.fontCandidates = candidates;
     }
 
     function updateDisplay(index, field, value) {
@@ -508,6 +571,26 @@ Scope {
         if (wallpaperActionProcess.running) return;
         wallpaperActionProcess.command = Commands.settingsWallpaperAzoteCommand("reset", []);
         wallpaperActionProcess.running = true;
+    }
+
+    function refreshFont() {
+        if (!root.visible || fontStatusProcess.running) return;
+        root.fontState = "loading";
+        fontStatusProcess.running = true;
+        root.refreshFontCandidates();
+    }
+
+    function applyFont(family, scale) {
+        if (!family || fontActionProcess.running) return;
+        const scaleStr = (scale || 1.0).toFixed(2);
+        fontActionProcess.command = Commands.settingsFontCommand("apply", [family, scaleStr]);
+        fontActionProcess.running = true;
+    }
+
+    function followSystemFont() {
+        if (fontActionProcess.running) return;
+        fontActionProcess.command = Commands.settingsFontCommand("reset", []);
+        fontActionProcess.running = true;
     }
 
     function setSearch(value) {
@@ -831,6 +914,53 @@ Scope {
         stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.wallpaperState = "failure"; root.wallpaperMessage = error; } } }
         onRunningChanged: {
             if (!running) root.refreshWallpaper();
+        }
+    }
+
+    function refreshFontCandidates() {
+        const allowed = /^(MesloLGS Nerd Font Mono|MesloLGM Nerd Font Mono|Noto Color Emoji|JetBrains Mono Nerd Font|FiraCode Nerd Font|Hack Nerd Font|CascadiaCode Nerd Font|Iosevka Nerd Font)$/;
+        const result = [];
+        for (const family of Qt.fontFamilies()) {
+            if (allowed.test(family)) {
+                result.push({
+                    "id": "font",
+                    "state": "available",
+                    "family": family,
+                    "name": family
+                });
+            }
+        }
+        root.fontCandidates = result;
+    }
+
+    Process {
+        id: fontStatusProcess
+        command: Commands.settingsFontCommand("status", [])
+        running: false
+        stdout: StdioCollector { onStreamFinished: root.parseFont(this.text) }
+        stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.fontState = "failure"; root.fontMessage = error; } } }
+    }
+
+    Process {
+        id: fontActionProcess
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = this.text.trim().split("\n");
+                for (const line of lines) {
+                    const fields = line.split("\t");
+                    if (fields[0] === "result") {
+                        root.fontMessage = fields.slice(1).join(" ");
+                    } else if (fields[0] === "error") {
+                        root.fontState = "failure";
+                        root.fontMessage = fields.slice(1).join(" ");
+                    }
+                }
+            }
+        }
+        stderr: StdioCollector { onStreamFinished: { const error = this.text.trim(); if (error) { root.fontState = "failure"; root.fontMessage = error; } } }
+        onRunningChanged: {
+            if (!running) root.refreshFont();
         }
     }
 

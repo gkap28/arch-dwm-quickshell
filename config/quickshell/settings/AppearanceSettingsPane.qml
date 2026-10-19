@@ -12,6 +12,8 @@ Flickable {
     contentHeight: contentColumn.implicitHeight
     clip: true
 
+    property string selectedFont: ""
+
     ColumnLayout {
         id: contentColumn
         width: root.width
@@ -257,6 +259,147 @@ Flickable {
             Layout.fillWidth: true
             Layout.preferredHeight: 1
             color: Theme.border
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 1
+            color: Theme.border
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: "Font / Text Size"
+            color: Theme.textStrong
+            font.family: Theme.fontFamily
+            font.bold: true
+            font.pixelSize: Theme.bodyFontSize
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: "Aktuell: " + (root.settingsModel.fontFamily || "(unbekannt)") + " / " + Math.round(root.settingsModel.fontScale * 100) + "%"
+            color: Theme.textMuted
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.smallFontSize
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.tightSpacing
+
+            Text {
+                text: "Text-Größe:"
+                color: Theme.text
+                font.family: Theme.fontFamily
+            }
+
+            Repeater {
+                model: [0.80, 0.90, 1.00, 1.10, 1.25, 1.50]
+
+                delegate: Rectangle {
+                    id: scaleButton
+                    required property real modelData
+
+                    readonly property bool isActive: Math.abs(root.settingsModel.fontScale - scaleButton.modelData) < 0.01
+
+                    width: 60
+                    height: 30
+                    color: isActive ? Theme.accent : Theme.surface
+                    border.color: isActive ? Theme.accent : Theme.border
+                    radius: Theme.radius
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: Math.round(scaleButton.modelData * 100) + "%"
+                        color: Theme.textStrong
+                        font.family: Theme.fontFamily
+                        font.pixelSize: Theme.tinyFontSize
+                        font.bold: scaleButton.isActive
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        enabled: !scaleButton.isActive
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            const family = root.settingsModel.fontFamily || "MesloLGS Nerd Font Mono";
+                            root.settingsModel.applyFont(family, scaleButton.modelData);
+                        }
+                    }
+                }
+            }
+        }
+
+        Text {
+            Layout.fillWidth: true
+            text: "Font auswählen (Klick markiert, dann Apply Font drücken):"
+            color: Theme.text
+            font.family: Theme.fontFamily
+        }
+
+        Flow {
+            Layout.fillWidth: true
+            spacing: Theme.tightSpacing
+
+            Repeater {
+                model: root.settingsModel.fontCandidates
+
+                delegate: Rectangle {
+                    id: fontButton
+                    required property var modelData
+
+                    readonly property bool isActive: modelData.family === root.settingsModel.fontFamily
+                    readonly property bool isSelected: modelData.family === root.selectedFont
+
+                    width: Math.max(fontLabel.implicitWidth + 24, 140)
+                    height: 36
+                    color: isActive ? Theme.accent : (isSelected ? Theme.surfaceHover : Theme.surface)
+                    border.color: isActive ? Theme.accent : (isSelected ? Theme.accentSecondary : Theme.border)
+                    border.width: isSelected ? 2 : 1
+                    radius: Theme.radius
+
+                    Text {
+                        id: fontLabel
+                        anchors.centerIn: parent
+                        text: fontButton.modelData.family
+                        color: Theme.textStrong
+                        font.family: fontButton.modelData.family
+                        font.pixelSize: Theme.smallFontSize
+                        font.bold: fontButton.isActive
+                        elide: Text.ElideRight
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.selectedFont = fontButton.modelData.family
+                    }
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Theme.tightSpacing
+
+            ShellButton {
+                label: "Apply Font"
+                enabled: root.selectedFont.length > 0
+                onActivated: {
+                    root.settingsModel.applyFont(root.selectedFont, root.settingsModel.fontScale || 1.0);
+                    root.selectedFont = "";
+                }
+            }
+
+            ShellButton {
+                label: "Follow System Font"
+                onActivated: root.settingsModel.followSystemFont()
+            }
+            ShellButton {
+                label: "Refresh"
+                onActivated: root.settingsModel.refreshFont()
+            }
         }
 
         Text {

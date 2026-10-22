@@ -117,29 +117,9 @@ Scope {
 
     function workspaceIndexes(screen) {
         const indexes = [];
-        const workspaceCount = root.workspaceNames.length;
-
-        if (workspaceCount === 0) {
-            return indexes;
-        }
-
-        const screenCount = Math.max(1, root.monitorWorkspaceRows.length > 0
-            ? root.monitorWorkspaceRows.length : Quickshell.screens.length);
-        const logicalIndex = Math.min(root.screenIndex(screen), screenCount - 1);
-        const workspacesPerScreen = Math.max(1, Math.floor(workspaceCount / screenCount));
-        let start = logicalIndex * workspacesPerScreen;
-        let end = logicalIndex === screenCount - 1
-            ? workspaceCount : start + workspacesPerScreen;
-
-        if (start >= workspaceCount) {
-            start = workspaceCount - 1;
-        }
-        end = Math.min(end, workspaceCount);
-
-        for (let index = start; index < end; index++) {
+        for (let index = 0; index < root.workspaceNames.length; index++) {
             indexes.push(index);
         }
-
         return indexes;
     }
 
